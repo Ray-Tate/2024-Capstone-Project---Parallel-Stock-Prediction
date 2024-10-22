@@ -2,6 +2,7 @@
 #include <vector>
 #include <fstream>
 #include <regex>
+#include <sstream>
 
 using namespace std;
 
@@ -19,6 +20,20 @@ int main(){
             rowSize++;
         }
     }
-    cout << rowSize;
+    cout << "Row size: " +to_string(rowSize) << endl;
 
+    //import data into vector
+    vector<vector<double>> data = {}; // data[y][x]
+    vector<double> row = {};
+    string element;
+    j=0;
+    while(getline(fin,line)){
+        stringstream ss(line);
+        while(ss.good()){
+            getline(ss,element,',');
+            row.insert(row.end(),stod(element));
+        }
+        data.insert(data.end(),row);
+    }
+    cout << "data dimension: " + to_string(data.size()) + "," + to_string( data[0].size()) << endl;
 }
