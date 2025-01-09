@@ -36,18 +36,26 @@ std::vector<double> file2arr(const std::string& filePath) {
     return array;
 }
 
+
 class StockData {
 private:
     std::string name;                // Name of the data holder
     std::vector<double> doubleArray;   // Array of doubles
+    static int arrayLength;
 
 public:
     // Constructor
-    StockData(const std::string name, const std::vector<double>& doubleArray)
-        : name(name), doubleArray(doubleArray) {}
-
-    // Default constructor
-    StockData() : name("Unnamed"), doubleArray({}) {}
+    StockData(const std::string name, const std::vector<double>& doubleArray){
+        StockData::name = name;
+        StockData::doubleArray = doubleArray;
+        if (arrayLength == 0) {
+            arrayLength = doubleArray.size();
+        }
+        if(doubleArray.size() != arrayLength){
+            std::cerr << "Invalid input data size! Stock '" << name << "' has '" << doubleArray.size() <<"' elements, expected '" << arrayLength <<"' because of previous input data size." << std::endl;
+            exit(1);
+        }
+    }
 
     // Getters
     std::string getName() const {
@@ -69,13 +77,14 @@ public:
 
     // Method to print data
     void printStockData() const {
-        std::cout << "Name: " << name << "\nArray: ";
+        std::cout << "Name: " << name << "\nArray (Size = " << doubleArray.size() << "): ";
         for (double value : doubleArray) {
             std::cout << value << " ";
         }
         std::cout << std::endl;
     }
 };
+int StockData::arrayLength = 0;
 
 
 int main() {
