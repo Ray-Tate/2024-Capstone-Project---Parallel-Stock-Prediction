@@ -46,6 +46,16 @@ std::vector<double> normalize_data(std::vector<double> doubleArray) {
     return doubleArrayNormalized;
     }
 
+std::vector<double> denormalize_data(std::vector<double> doubleArrayNormalized, std::vector<double> doubleArray) {
+    std::vector<double> doubleArrayDenormalized;
+    double max = *std::max_element(doubleArray.begin(), doubleArray.end());
+    double min = *std::min_element(doubleArray.begin(), doubleArray.end());
+    for (int i = 0; i < int(doubleArrayNormalized.size()); i++) {
+        doubleArrayDenormalized.push_back(doubleArrayNormalized[i] * (max - min) + min);
+    }
+    return doubleArrayDenormalized;
+}
+
 class StockData {
 private:
     std::string name;                // Name of the data holder
