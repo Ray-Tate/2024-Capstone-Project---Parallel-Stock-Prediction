@@ -55,6 +55,21 @@ std::vector<double> denormalize_data(std::vector<double> doubleArrayNormalized, 
     }
     return doubleArrayDenormalized;
 }
+std::vector<double> moving_average(std::vector<double> doubleArray, int windowSize) {
+    std::vector<double> doubleArrayMA;
+    double moving_total = 0;
+    double denominator = 0;
+    for (int i = 0; i < int(doubleArray.size()); i++) {
+        moving_total += doubleArrayMA[i];
+        denominator += 1;
+        if (i > windowSize) {
+            moving_total -= doubleArrayMA[i - windowSize];
+            denominator -= 1;
+        }
+        doubleArrayMA.push_back(moving_total / denominator);
+}
+    return doubleArrayMA;
+}
 
 class StockData {
 private:
