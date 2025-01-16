@@ -36,18 +36,29 @@ std::vector<double> file2arr(const std::string& filePath) {
     return array;
 }
 
+std::vector<double> normalize_data(std::vector<double> doubleArray) {
+    std::vector<double> doubleArrayNormalized;
+    double max = *std::max_element(doubleArray.begin(), doubleArray.end());
+    double min = *std::min_element(doubleArray.begin(), doubleArray.end());
+    for (int i = 0; i < int(doubleArray.size()); i++) {
+        doubleArrayNormalized.push_back((doubleArray[i] - min) / (max - min));
+    }
+    return doubleArrayNormalized;
+    }
 
 class StockData {
 private:
     std::string name;                // Name of the data holder
     std::vector<double> doubleArray;   // Array of doubles
     static int arrayLength;
+    std::vector<double> doubleArrayNormalized;   // Array of doubles
 
 public:
     // Constructor
     StockData(const std::string name, const std::vector<double>& doubleArray){
         StockData::name = name;
         StockData::doubleArray = doubleArray;
+        StockData::doubleArrayNormalized = normalize_data(doubleArray);
         if (arrayLength == 0) {
             arrayLength = doubleArray.size();
         }
@@ -82,8 +93,14 @@ public:
             std::cout << value << " ";
         }
         std::cout << std::endl;
+        std::cout << "Name: " << name << "\nNormalized Array (Size = " << doubleArrayNormalized.size() << "): ";
+        for (double value : doubleArrayNormalized) {
+            std::cout << value << " ";
+        }
+        std::cout << std::endl;
     }
 };
+
 int StockData::arrayLength = 0;
 
 
