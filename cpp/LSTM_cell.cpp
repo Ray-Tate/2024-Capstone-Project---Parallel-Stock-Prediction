@@ -105,6 +105,43 @@ std::vector<std::vector<double>> randomMatrix(int rows, int cols) {
     return matrix;
 }
 
+std::vector<std::vector<double>> concatenateMatrix(const std::vector<std::vector<double>>& array1, const std::vector<std::vector<double>>& array2) {
+    std::vector<std::vector<double>> result = array1;
+
+    // Append rows of array2 to array1
+    for (const auto& row : array2) {
+        result.push_back(row);
+    }
+
+    return result;
+}
+
+std::vector<std::vector<double>> dotMatrix(const std::vector<std::vector<double>>& A, const std::vector<std::vector<double>>& B) {
+    int rowsA = A.size();
+    int colsA = A[0].size();
+    int rowsB = B.size();
+    int colsB = B[0].size();
+
+    // Check if multiplication is possible (colsA must equal rowsB)
+    if (colsA != rowsB) {
+        throw std::invalid_argument("Incompatible matrices for dot product");
+    }
+
+    // Initialize result matrix with appropriate dimensions (rowsA x colsB)
+    std::vector<std::vector<double>> result(rowsA, std::vector<double>(colsB, 0.0));
+
+    // Perform matrix multiplication (dot product)
+    for (int i = 0; i < rowsA; ++i) {
+        for (int j = 0; j < colsB; ++j) {
+            for (int k = 0; k < colsA; ++k) {
+                result[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+
+    return result;
+}
+
 class LSTM {
 private:
     int input_size;
