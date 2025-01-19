@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include <string>
 #include <cmath>
 #include <random>
@@ -106,10 +107,11 @@ std::vector<std::vector<double>> randomMatrix(int rows, int cols) {
 
 class LSTM {
 private:
-    // Hyperparameters
-    double learning_rate;
+    int input_size;
     int hidden_size;
+    int output_size;
     int num_epochs;
+    double learning_rate;
 
     // Weights and biases
     std::vector<std::vector<double>> wf, bf; // Forget gate
@@ -118,11 +120,29 @@ private:
     std::vector<std::vector<double>> wo, bo; // Output gate
     std::vector<std::vector<double>> wy, by; // Final gate
 
+    // State containers
+    std::unordered_map<int, std::vector<double>> concat_inputs;
+    std::unordered_map<int, std::vector<double>> hidden_states;
+    std::unordered_map<int, std::vector<double>> cell_states;
+
+    // Gate activations
+    std::unordered_map<int, std::vector<double>> activation_outputs;
+    std::unordered_map<int, std::vector<double>> candidate_gates;
+    std::unordered_map<int, std::vector<double>> output_gates;
+    std::unordered_map<int, std::vector<double>> forget_gates;
+    std::unordered_map<int, std::vector<double>> input_gates;
+    std::unordered_map<int, std::vector<double>> outputs;
+
 public:
     // Constructor
-    LSTM(int input_size, int hidden_size, int output_size, int num_epochs, double learning_rate) 
-        : learning_rate(learning_rate), hidden_size(hidden_size), num_epochs(num_epochs) {
-        
+    LSTM(int input_size, int hidden_size, int output_size, int num_epochs, double learning_rate)
+        : input_size(input_size),
+          hidden_size(hidden_size),
+          output_size(output_size),
+          num_epochs(num_epochs),
+          learning_rate(learning_rate) {
+
+        // Initialize weights and biases
         // Initialize weights and biases for all gates
         wf = randomMatrix(hidden_size, input_size);
         bf = zeroMatrix(hidden_size, 1);
@@ -138,16 +158,42 @@ public:
 
         wy = randomMatrix(output_size, hidden_size);
         by = zeroMatrix(output_size, 1);
+
+        // Reset all states and gates
+        reset();
     }
 
-    // Debugging: print weight dimensions
-    void printWeightInfo() {
-        std::cout << "Weight Dimensions: " << std::endl;
-        std::cout << "Forget Gate: wf (" << wf.size() << "x" << wf[0].size() << "), bf (" << bf.size() << "x" << bf[0].size() << ")" << std::endl;
-        std::cout << "Input Gate: wi (" << wi.size() << "x" << wi[0].size() << "), bi (" << bi.size() << "x" << bi[0].size() << ")" << std::endl;
-        std::cout << "Candidate Gate: wc (" << wc.size() << "x" << wc[0].size() << "), bc (" << bc.size() << "x" << bc[0].size() << ")" << std::endl;
-        std::cout << "Output Gate: wo (" << wo.size() << "x" << wo[0].size() << "), bo (" << bo.size() << "x" << bo[0].size() << ")" << std::endl;
-        std::cout << "Final Gate: wy (" << wy.size() << "x" << wy[0].size() << "), by (" << by.size() << "x" << by[0].size() << ")" << std::endl;
+    // Reset network memory
+    void reset() {
+        concat_inputs.clear();
+
+        // Initialize hidden and cell states with zeros
+        hidden_states.clear();
+        hidden_states[-1] = std::vector<double>(hidden_size, 0.0);
+
+        cell_states.clear();
+        cell_states[-1] = std::vector<double>(hidden_size, 0.0);
+
+        // Clear gate activations
+        activation_outputs.clear();
+        candidate_gates.clear();
+        output_gates.clear();
+        forget_gates.clear();
+        input_gates.clear();
+        outputs.clear();
+    }
+
+    // Print the current states (for debugging)
+    void printStates() const {
+        std::cout << "Hidden State (t=-1): ";
+        for (double val : hidden_states.at(-1)) {
+            std::cout << val << " ";
+        }
+        std::cout << "\nCell State (t=-1): ";
+        for (double val : cell_states.at(-1)) {
+            std::cout << val << " ";
+        }
+        std::cout << std::endl;
     }
 };
 
