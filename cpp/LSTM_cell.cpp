@@ -220,6 +220,29 @@ public:
         outputs.clear();
     }
 
+    std::unordered_map<int, std::vector<double>> forward( std::vector<std::vector<double>>& inputs) {
+        // Reset the hidden and cell states
+        reset();
+
+        outputs.clear();
+        
+        for (size_t q = 0; q < inputs.size(); ++q) {
+            concat_inputs[q] = hidden_states[q - 1];
+            concat_inputs[q].insert(concat_inputs[q].end(), inputs[q].begin(), inputs[q].end());
+            forget_gates[q] = sigmoid_vector(dotMatrix(wf, concat_inputs[q]) + bf);
+            input_gates[q] = sigmoid_vector(dotMatrix(wi, concat_inputs[q]) + bi);
+            candidate_gates[q] = tanh_matrix(dotMatrix(wc, concat_inputs[q]) + bc);
+            output_gates[q] = sigmoid_vector(dotMatrix(wo, concat_inputs[q]) + bo);
+
+            cell_states[q] = forget_gates[q] * cell_states[q - 1] + input_gates[q] * candidate_gates[q]; // check
+
+            hidden_states[q] = output_gates[q] * tanh_matrix(cell_states[q])//check
+
+            outputs += dotMatrix(wy, hidden_states[q]) + by
+        }
+        return outputs;
+    }
+
     // Print the current states (for debugging)
     void printStates() const {
         std::cout << "Hidden State (t=-1): ";
