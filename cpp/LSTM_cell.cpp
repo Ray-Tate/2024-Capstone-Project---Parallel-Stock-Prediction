@@ -26,7 +26,7 @@ std::vector<std::vector<double>> initWeights(int input_size,int output_size){
     return weights;
 };
 
-std::vector<double> sigmoid_vector(std::vector<double> input, bool derivative){
+std::vector<double> sigmoid_vector(std::vector<double> input, bool derivative = false){
     std::vector<double> output = input;
     if(derivative){
         for(int i = 0;i<input.size();i++){
@@ -40,7 +40,7 @@ std::vector<double> sigmoid_vector(std::vector<double> input, bool derivative){
     return output;
 };
 
-std::vector<std::vector<double>> sigmoid_matrix(std::vector<std::vector<double>> input, bool derivative){
+std::vector<std::vector<double>> sigmoid_matrix(std::vector<std::vector<double>> input, bool derivative = false){
     std::vector<std::vector<double>> output = {};
     for(int i =0; i<input.size();i++){
         output.push_back(sigmoid_vector(input[0],derivative));
@@ -48,7 +48,7 @@ std::vector<std::vector<double>> sigmoid_matrix(std::vector<std::vector<double>>
     return output;
 };
 
-std::vector<double> tanh_vector(std::vector<double> input, bool derivative){
+std::vector<double> tanh_vector(std::vector<double> input, bool derivative = false){
     std::vector<double> output = input;
     if(derivative){
         for(int i = 0;i<input.size();i++){
@@ -62,7 +62,7 @@ std::vector<double> tanh_vector(std::vector<double> input, bool derivative){
     return output;
 };
 
-std::vector<std::vector<double>> tanh_matrix(std::vector<std::vector<double>> input, bool derivative){
+std::vector<std::vector<double>> tanh_matrix(std::vector<std::vector<double>> input, bool derivative = false){
     std::vector<std::vector<double>> output = {};
     for(int i =0; i<input.size();i++){
         output.push_back(tanh_vector(input[0],derivative));
@@ -90,6 +90,11 @@ std::vector<std::vector<double>> zeroMatrix(int rows, int cols) {
     return std::vector<std::vector<double>>(rows, std::vector<double>(cols, 0.0));
 }
 
+// Helper function to create a zero vector
+std::vector<double> zeroVector(int rows) {
+    return std::vector<double>(rows, 0.0);
+}
+
 // Helper function to create a random matrix
 std::vector<std::vector<double>> randomMatrix(int rows, int cols) {
     std::vector<std::vector<double>> matrix(rows, std::vector<double>(cols));
@@ -105,6 +110,18 @@ std::vector<std::vector<double>> randomMatrix(int rows, int cols) {
     return matrix;
 }
 
+std::vector<double> addVectors(const std::vector<double>& vec1, const std::vector<double>& vec2) {
+    if (vec1.size() != vec2.size()) {
+        throw std::invalid_argument("Vectors must be of the same size");
+    }
+
+    std::vector<double> result(vec1.size());
+    for (size_t i = 0; i < vec1.size(); ++i) {
+        result[i] = vec1[i] + vec2[i];
+    }
+    return result;
+}
+
 std::vector<std::vector<double>> concatenateMatrix(const std::vector<std::vector<double>>& array1, const std::vector<std::vector<double>>& array2) {
     std::vector<std::vector<double>> result = array1;
 
@@ -116,11 +133,11 @@ std::vector<std::vector<double>> concatenateMatrix(const std::vector<std::vector
     return result;
 }
 
-std::vector<std::vector<double>> dotMatrix(const std::vector<std::vector<double>>& A, const std::vector<std::vector<double>>& B) {
+std::vector<double> dotMatrix(const std::vector<std::vector<double>>& A, const std::vector<double>& B) {
     int rowsA = A.size();
     int colsA = A[0].size();
     int rowsB = B.size();
-    int colsB = B[0].size();
+    int colsB = 1;
 
     // Check if multiplication is possible (colsA must equal rowsB)
     if (colsA != rowsB) {
@@ -128,14 +145,12 @@ std::vector<std::vector<double>> dotMatrix(const std::vector<std::vector<double>
     }
 
     // Initialize result matrix with appropriate dimensions (rowsA x colsB)
-    std::vector<std::vector<double>> result(rowsA, std::vector<double>(colsB, 0.0));
+    std::vector<double> result = zeroVector(colsA);
 
     // Perform matrix multiplication (dot product)
     for (int i = 0; i < rowsA; ++i) {
-        for (int j = 0; j < colsB; ++j) {
-            for (int k = 0; k < colsA; ++k) {
-                result[i][j] += A[i][k] * B[k][j];
-            }
+        for (int k = 0; k < colsA; ++k) {
+            result[i] += A[i][k] * B[k];
         }
     }
 
@@ -150,12 +165,20 @@ private:
     int num_epochs;
     double learning_rate;
 
-    // Weights and biases
-    std::vector<std::vector<double>> wf, bf; // Forget gate
-    std::vector<std::vector<double>> wi, bi; // Input gate
-    std::vector<std::vector<double>> wc, bc; // Candidate gate
-    std::vector<std::vector<double>> wo, bo; // Output gate
-    std::vector<std::vector<double>> wy, by; // Final gate
+    // Weights
+    std::vector<std::vector<double>> wf; // Forget gate
+    std::vector<std::vector<double>> wi; // Input gate
+    std::vector<std::vector<double>> wc; // Candidate gate
+    std::vector<std::vector<double>> wo; // Output gate
+    std::vector<std::vector<double>> wy; // Final gate
+
+    // Biases
+    std::vector<double> bf; // Forget gate
+    std::vector<double> bi; // Input gate
+    std::vector<double> bc; // Candidate gate
+    std::vector<double> bo; // Output gate
+    std::vector<double> by; // Final gate
+
 
     // State containers
     std::unordered_map<int, std::vector<double>> concat_inputs;
@@ -182,19 +205,19 @@ public:
         // Initialize weights and biases
         // Initialize weights and biases for all gates
         wf = randomMatrix(hidden_size, input_size);
-        bf = zeroMatrix(hidden_size, 1);
+        bf = zeroVector(hidden_size);
 
         wi = randomMatrix(hidden_size, input_size);
-        bi = zeroMatrix(hidden_size, 1);
+        bi = zeroVector(hidden_size);
 
         wc = randomMatrix(hidden_size, input_size);
-        bc = zeroMatrix(hidden_size, 1);
+        bc = zeroVector(hidden_size);
 
         wo = randomMatrix(hidden_size, input_size);
-        bo = zeroMatrix(hidden_size, 1);
+        bo = zeroVector(hidden_size);
 
         wy = randomMatrix(output_size, hidden_size);
-        by = zeroMatrix(output_size, 1);
+        by = zeroVector(output_size);
 
         // Reset all states and gates
         reset();
@@ -229,10 +252,10 @@ public:
         for (size_t q = 0; q < inputs.size(); ++q) {
             concat_inputs[q] = hidden_states[q - 1];
             concat_inputs[q].insert(concat_inputs[q].end(), inputs[q].begin(), inputs[q].end());
-            forget_gates[q] = sigmoid_vector(dotMatrix(wf, concat_inputs[q]) + bf);
-            input_gates[q] = sigmoid_vector(dotMatrix(wi, concat_inputs[q]) + bi);
-            candidate_gates[q] = tanh_matrix(dotMatrix(wc, concat_inputs[q]) + bc);
-            output_gates[q] = sigmoid_vector(dotMatrix(wo, concat_inputs[q]) + bo);
+            forget_gates[q] = sigmoid_vector(addVectors(dotMatrix(wf, concat_inputs[q]),  bf));
+            input_gates[q] = sigmoid_vector(addVectors(dotMatrix(wi, concat_inputs[q]), bi));
+            candidate_gates[q] = tanh_vector(addVectors(dotMatrix(wc, concat_inputs[q]), bc));
+            output_gates[q] = sigmoid_vector(addVectors(dotMatrix(wo, concat_inputs[q]), bo));
 
             cell_states[q] = forget_gates[q] * cell_states[q - 1] + input_gates[q] * candidate_gates[q]; // check
 
