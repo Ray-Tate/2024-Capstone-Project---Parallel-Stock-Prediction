@@ -157,6 +157,36 @@ std::vector<double> dotMatrix(const std::vector<std::vector<double>>& A, const s
     return result;
 }
 
+std::vector<double> elementWiseMultiply(const std::vector<double>& vec1, const std::vector<double>& vec2) {
+    // Check if both vectors have the same size
+    if (vec1.size() != vec2.size()) {
+        throw std::invalid_argument("Vectors must be of the same size for element-wise multiplication.");
+    }
+
+    std::vector<double> result(vec1.size());
+
+    for (size_t i = 0; i < vec1.size(); ++i) {
+        result[i] = vec1[i] * vec2[i];
+    }
+
+    return result;
+}
+
+std::vector<double> elementWiseAdd(const std::vector<double>& vec1, const std::vector<double>& vec2) {
+    // Check if both vectors have the same size
+    if (vec1.size() != vec2.size()) {
+        throw std::invalid_argument("Vectors must be of the same size for element-wise addition.");
+    }
+
+    std::vector<double> result(vec1.size());
+
+    for (size_t i = 0; i < vec1.size(); ++i) {
+        result[i] = vec1[i] + vec2[i];
+    }
+
+    return result;
+}
+
 class LSTM {
 private:
     int input_size;
@@ -243,11 +273,11 @@ public:
         outputs.clear();
     }
 
-    std::unordered_map<int, std::vector<double>> forward( std::vector<std::vector<double>>& inputs) {
+    std::vector<double> forward( std::vector<std::vector<double>>& inputs) {
         // Reset the hidden and cell states
         reset();
 
-        outputs.clear();
+        std::vector<double> forward_output;
         
         for (size_t q = 0; q < inputs.size(); ++q) {
             concat_inputs[q] = hidden_states[q - 1];
@@ -257,13 +287,13 @@ public:
             candidate_gates[q] = tanh_vector(addVectors(dotMatrix(wc, concat_inputs[q]), bc));
             output_gates[q] = sigmoid_vector(addVectors(dotMatrix(wo, concat_inputs[q]), bo));
 
-            cell_states[q] = forget_gates[q] * cell_states[q - 1] + input_gates[q] * candidate_gates[q]; // check
+            cell_states[q] = elementWiseAdd(elementWiseMultiply(forget_gates[q], cell_states[q - 1]), elementWiseMultiply(input_gates[q], candidate_gates[q])); // check
 
-            hidden_states[q] = output_gates[q] * tanh_matrix(cell_states[q])//check
+            hidden_states[q] = elementWiseMultiply(output_gates[q], tanh_vector(cell_states[q]));//check
 
-            outputs += dotMatrix(wy, hidden_states[q]) + by
+            forward_output = elementWiseAdd(elementWiseAdd(dotMatrix(wy, hidden_states[q]), by), forward_output);
         }
-        return outputs;
+        return forward_output;
     }
 
     // Print the current states (for debugging)
