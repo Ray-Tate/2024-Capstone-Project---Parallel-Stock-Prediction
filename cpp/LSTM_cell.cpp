@@ -122,6 +122,61 @@ std::vector<double> addVectors(const std::vector<double>& vec1, const std::vecto
     return result;
 }
 
+std::vector<std::vector<double>> transpose(const std::vector<std::vector<double>>& matrix) {
+    std::vector<std::vector<double>> result(matrix[0].size(), std::vector<double>(matrix.size()));
+    for (size_t i = 0; i < matrix.size(); ++i) {
+        for (size_t j = 0; j < matrix[0].size(); ++j) {
+            result[j][i] = matrix[i][j];
+        }
+    }
+    return result;
+}
+
+std::vector<std::vector<double>> outerProduct(const std::vector<double>& vec1, const std::vector<double>& vec2) {
+    std::vector<std::vector<double>> result(vec1.size(), std::vector<double>(vec2.size()));
+    for (size_t i = 0; i < vec1.size(); ++i) {
+        for (size_t j = 0; j < vec2.size(); ++j) {
+            result[i][j] = vec1[i] * vec2[j];
+        }
+    }
+    return result;
+}
+
+std::vector<std::vector<double>> scaleMatrix(const std::vector<std::vector<double>>& matrix, double scale) {
+    std::vector<std::vector<double>> result = matrix;
+    for (auto& row : result) {
+        for (double& val : row) {
+            val *= scale;
+        }
+    }
+    return result;
+}
+
+std::vector<double> scaleVector(const std::vector<double>& vec, double scale) {
+    std::vector<double> result = vec;
+    for (double& val : result) {
+        val *= scale;
+    }
+    return result;
+}
+
+void clipGradients(std::vector<std::vector<double>>& ...matrices) {
+    for (auto& matrix : matrices) {
+        for (auto& row : matrix) {
+            for (double& val : row) {
+                val = std::max(-1.0, std::min(1.0, val));
+            }
+        }
+    }
+}
+
+void clipGradients(std::vector<double>& ...vectors) {
+    for (auto& vec : vectors) {
+        for (double& val : vec) {
+            val = std::max(-1.0, std::min(1.0, val));
+        }
+    }
+}
 std::vector<std::vector<double>> concatenateMatrix(const std::vector<std::vector<double>>& array1, const std::vector<std::vector<double>>& array2) {
     std::vector<std::vector<double>> result = array1;
 
@@ -295,6 +350,79 @@ public:
         }
         return forward_output;
     }
+    std::vector<double> backward(const std::vector<double>& errors, const std::vector<std::vector<double>>& inputs) {
+        std::vector<std::vector<double>> d_wf = zeroMatrix(wf.size(), wf[0].size());
+        std::vector<std::vector<double>> d_wi = zeroMatrix(wi.size(), wi[0].size());
+        std::vector<std::vector<double>> d_wc = zeroMatrix(wc.size(), wc[0].size());
+        std::vector<std::vector<double>> d_wo = zeroMatrix(wo.size(), wo[0].size());
+        std::vector<std::vector<double>> d_wy = zeroMatrix(wy.size(), wy[0].size());
+
+        std::vector<double> d_bf = zeroVector(bf.size());
+        std::vector<double> d_bi = zeroVector(bi.size());
+        std::vector<double> d_bc = zeroVector(bc.size());
+        std::vector<double> d_bo = zeroVector(bo.size());
+        std::vector<double> d_by = zeroVector(by.size());
+        
+        std::vector<double> dh_next = zeroVector(hidden_states[0].size());
+        std::vector<double> dc_next = zeroVector(cell_states[0].size());
+        
+        for (int q = inputs.size() - 1; q >= 0; --q) {
+            std::vector<double> error = errors[q];
+
+            // Final Gate Weights and Biases Errors
+            d_wy = elementWiseAdd(d_wy, outerProduct(error, hidden_states[q]));
+            d_by = addVectors(d_by, error);
+
+            // Hidden State Error
+            std::vector<double> d_hs = addVectors(dotMatrix(transpose(wy), error), dh_next);
+
+
+            // Output Gate Weights and Biases Errors
+            std::vector<double> tanh_cs = tanh_vector(cell_states[q]);
+            std::vector<double> d_o = elementWiseMultiply(elementWiseMultiply(tanh_cs, d_hs), sigmoid_vector(output_gates[q], true));
+            d_wo = elementWiseAdd(d_wo, outerProduct(d_o, inputs[q]));
+            d_bo = addVectors(d_bo, d_o);
+
+            // Cell State Error
+            std::vector<double> d_cs = addVectors(elementWiseMultiply(elementWiseMultiply(tanh_vector(tanh_vector(cell_states[q]), true),output_gates[q]),d_hs),dc_next);
+
+            // Forget Gate Weights and Biases Errors
+            std::vector<double> d_f = elementWiseMultiply(elementWiseMultiply(d_cs, cell_states[q - 1]),sigmoid_vector(forget_gates[q], true));
+            d_wf = elementWiseAdd(d_wf, outerProduct(d_f, inputs[q]));
+            d_bf = addVectors(d_bf, d_f);
+
+            // Input Gate Weights and Biases Errors
+            std::vector<double> d_i = elementWiseMultiply(elementWiseMultiply(d_cs, candidate_gates[q]),sigmoid_vector(input_gates[q], true));
+            d_wi = elementWiseAdd(d_wi, outerProduct(d_i, inputs[q]));
+            d_bi = addVectors(d_bi, d_i);
+            
+            // Candidate Gate Weights and Biases Errors
+            std::vector<double> d_c = elementWiseMultiply(elementWiseMultiply(d_cs, input_gates[q]),tanh_vector(candidate_gates[q], true));
+            d_wc = elementWiseAdd(d_wc, outerProduct(d_c, inputs[q]));
+            d_bc = addVectors(d_bc, d_c);
+
+            // Concatenated Input Error (Sum of Error at Each Gate!)
+            std::vector<double> d_z = addVectors(addVectors(dotMatrix(transpose(wf), d_f),dotMatrix(transpose(wi), d_i)),addVectors(dotMatrix(transpose(wc), d_c),dotMatrix(transpose(wo), d_o)));
+
+            // Error of Hidden State and Cell State at Next Time Step
+            dh_next = std::vector<double>(d_z.begin(), d_z.begin() + hidden_size);
+            dc_next = elementWiseMultiply(forget_gates[q], d_cs);
+        }
+
+        clipGradients(d_wf, d_wi, d_wc, d_wo, d_wy);
+        clipGradients(d_bf, d_bi, d_bc, d_bo, d_by);
+        
+        wf = elementWiseAdd(wf, scaleMatrix(d_wf, learning_rate));
+        wi = elementWiseAdd(wi, scaleMatrix(d_wi, learning_rate));
+        wc = elementWiseAdd(wc, scaleMatrix(d_wc, learning_rate));
+        wo = elementWiseAdd(wo, scaleMatrix(d_wo, learning_rate));
+        wy = elementWiseAdd(wy, scaleMatrix(d_wy, learning_rate));
+
+        bf = addVectors(bf, scaleVector(d_bf, learning_rate));
+        bi = addVectors(bi, scaleVector(d_bi, learning_rate));
+        bc = addVectors(bc, scaleVector(d_bc, learning_rate));
+        bo = addVectors(bo, scaleVector(d_bo, learning_rate));
+        by = addVectors(by, scaleVector(d_by, learning_rate));
 
     // Print the current states (for debugging)
     void printStates() const {
