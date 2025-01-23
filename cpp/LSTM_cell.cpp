@@ -160,21 +160,17 @@ std::vector<double> scaleVector(const std::vector<double>& vec, double scale) {
     return result;
 }
 
-void clipGradients(std::vector<std::vector<double>>& ...matrices) {
-    for (auto& matrix : matrices) {
-        for (auto& row : matrix) {
-            for (double& val : row) {
-                val = std::max(-1.0, std::min(1.0, val));
-            }
+void clip(std::vector<std::vector<double>>& matrix) {
+    for (auto& row : matrix) {
+        for (double& val : row) {
+            val = std::max(-1.0, std::min(1.0, val));
         }
     }
 }
 
-void clipGradients(std::vector<double>& ...vectors) {
-    for (auto& vec : vectors) {
-        for (double& val : vec) {
-            val = std::max(-1.0, std::min(1.0, val));
-        }
+void clip(std::vector<double>& vec) {
+    for (double& val : vec) {
+        val = std::max(-1.0, std::min(1.0, val));
     }
 }
 std::vector<std::vector<double>> concatenateMatrix(const std::vector<std::vector<double>>& array1, const std::vector<std::vector<double>>& array2) {
@@ -237,6 +233,47 @@ std::vector<double> elementWiseAdd(const std::vector<double>& vec1, const std::v
 
     for (size_t i = 0; i < vec1.size(); ++i) {
         result[i] = vec1[i] + vec2[i];
+    }
+
+    return result;
+}
+
+std::vector<std::vector<double>> addMatrixVector(const std::vector<std::vector<double>>& mat2D, const std::vector<double>& vec1D) {
+    // Ensure the number of columns in mat2D matches the size of vec1D
+    if (mat2D.empty() || mat2D[0].size() != vec1D.size()) {
+        std::cerr << "Dimensions mismatch: Cannot add 1D vector to 2D matrix." << std::endl;
+        return {};  // Return empty matrix in case of error
+    }
+
+    // Create a new 2D matrix to store the result
+    std::vector<std::vector<double>> result = mat2D;
+
+    // Iterate through each row in the 2D matrix
+    for (size_t i = 0; i < result.size(); ++i) {
+        // Iterate through each element in the row and add corresponding element from vec1D
+        for (size_t j = 0; j < result[i].size(); ++j) {
+            result[i][j] += vec1D[j];  // Broadcasting happens here
+        }
+    }
+
+    return result;
+}
+
+std::vector<std::vector<double>> elementWiseAdd(const std::vector<std::vector<double>>& mat1, const std::vector<std::vector<double>>& mat2) {
+    // Ensure that both matrices have the same dimensions
+    if (mat1.size() != mat2.size() || mat1[0].size() != mat2[0].size()) {
+        std::cerr << "Error: Matrices must have the same dimensions for element-wise addition." << std::endl;
+        return {};  // Return empty matrix in case of error
+    }
+
+    // Create a new matrix to store the result
+    std::vector<std::vector<double>> result(mat1.size(), std::vector<double>(mat1[0].size()));
+
+    // Perform element-wise addition
+    for (size_t i = 0; i < mat1.size(); ++i) {
+        for (size_t j = 0; j < mat1[i].size(); ++j) {
+            result[i][j] = mat1[i][j] + mat2[i][j];
+        }
     }
 
     return result;
@@ -350,7 +387,7 @@ public:
         }
         return forward_output;
     }
-    std::vector<double> backward(const std::vector<double>& errors, const std::vector<std::vector<double>>& inputs) {
+    void backward(const std::vector<std::vector<double>>& errors, const std::vector<std::vector<double>>& inputs) {
         std::vector<std::vector<double>> d_wf = zeroMatrix(wf.size(), wf[0].size());
         std::vector<std::vector<double>> d_wi = zeroMatrix(wi.size(), wi[0].size());
         std::vector<std::vector<double>> d_wc = zeroMatrix(wc.size(), wc[0].size());
@@ -409,8 +446,8 @@ public:
             dc_next = elementWiseMultiply(forget_gates[q], d_cs);
         }
 
-        clipGradients(d_wf, d_wi, d_wc, d_wo, d_wy);
-        clipGradients(d_bf, d_bi, d_bc, d_bo, d_by);
+        clip(d_wf); clip(d_wi); clip(d_wc); clip(d_wo); clip(d_wy);
+        clip(d_bf); clip(d_bi); clip(d_bc); clip(d_bo); clip(d_by);
         
         wf = elementWiseAdd(wf, scaleMatrix(d_wf, learning_rate));
         wi = elementWiseAdd(wi, scaleMatrix(d_wi, learning_rate));
@@ -423,6 +460,7 @@ public:
         bc = addVectors(bc, scaleVector(d_bc, learning_rate));
         bo = addVectors(bo, scaleVector(d_bo, learning_rate));
         by = addVectors(by, scaleVector(d_by, learning_rate));
+    }
 
     // Print the current states (for debugging)
     void printStates() const {
