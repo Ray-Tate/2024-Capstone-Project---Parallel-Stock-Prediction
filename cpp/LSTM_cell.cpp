@@ -83,6 +83,24 @@ std::vector<double> softmax_vector(std::vector<double> input){
     return output;
 };
 
+//Computes softmax using the entire array.
+std::vector<std::vector<double>> softmax_matrix(std::vector<std::vector<double>> input, bool derivative = false){
+    std::vector<std::vector<double>> output = input;
+    double denominator = 0;
+    for(int i =0; i<input.size();i++){
+        for(int j=0;j<input[0].size();j++){
+            denominator = denominator + exp(output[i][j]);
+            output[i][j] = exp(output[i][j]);
+        }
+    }
+    for(int i =0; i<input.size();i++){
+        for(int j=0;j<input[0].size();j++){
+            output[i][j] = output[i][j]/denominator;
+        }
+    }
+    return output;
+}
+
 //+++++ LSTM Class +++++
 
 // Helper function to create a zero matrix
