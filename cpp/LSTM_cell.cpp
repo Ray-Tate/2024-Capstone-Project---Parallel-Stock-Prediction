@@ -383,11 +383,11 @@ public:
         outputs.clear();
     }
 
-    std::vector<double> forward( std::vector<std::vector<double>>& inputs) {
+    std::vector<std::vector<double>> forward( std::vector<std::vector<double>>& inputs) {
         // Reset the hidden and cell states
         reset();
-
-        std::vector<double> forward_output;
+        
+        std::vector<std::vector<double>> forward_output;
         
         for (size_t q = 0; q < inputs.size(); ++q) {
             concat_inputs[q] = hidden_states[q - 1];
@@ -400,8 +400,10 @@ public:
             cell_states[q] = elementWiseAdd(elementWiseMultiply(forget_gates[q], cell_states[q - 1]), elementWiseMultiply(input_gates[q], candidate_gates[q])); // check
 
             hidden_states[q] = elementWiseMultiply(output_gates[q], tanh_vector(cell_states[q]));//check
-
-            forward_output = elementWiseAdd(elementWiseAdd(dotMatrix(wy, hidden_states[q]), by), forward_output);
+            
+            //Chagned as outputs += tmp is a concatinate operation with tmp being a 1 x N matrix
+            forward_output.push_back(elementWiseAdd(dotMatrix(wy, hidden_states[q]), by));
+            
         }
         return forward_output;
     }
@@ -491,6 +493,28 @@ public:
             std::cout << val << " ";
         }
         std::cout << std::endl;
+    }
+
+    void train(std::vector<std::vector<double>> xtrain, std::vector<std::vector<double>> ytrain){
+        int i,j;
+        std::vector<std::vector<double>> preditions;
+        std::vector<std::vector<double>> errors;
+        std::vector<std::vector<double>> concat_inputs_martix;
+        for(i=0;i<num_epochs;i++){
+            preditions = forward(xtrain);
+            errors.clear();
+            for(j=0;j<preditions.size();j++){
+                errors.push_back(softmax_vector(scaleVector(preditions[j],-1)));
+                //errors[errors.size() -1][char_to_idx[ytrain[q]]]++; //Likely not needed as it involves hot encoding
+            }
+            //Convert from map to matrix
+            concat_inputs_martix.clear();
+            for(auto input : concat_inputs){
+                concat_inputs_martix.push_back(input.second);
+            }
+            backward(errors,concat_inputs_martix);
+
+        }
     }
 };
 
