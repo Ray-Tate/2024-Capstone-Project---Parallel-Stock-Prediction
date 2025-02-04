@@ -518,23 +518,22 @@ public:
     }
 
     void test(std::vector<std::vector<double>> xtrain, std::vector<std::vector<double>> ytrain){
-        int q;
         double accuracy = 0;
         std::vector<std::vector<double>> probabilities = forward(xtrain);
         
-        string output = "";
-        for (q = 0; q < ytrain.size(); q++){
-            std::vector<double> p = softmax_vector(scaleVector(probabilities[q]))
+        std::string output = "";
+        for (size_t q = 0; q < ytrain.size(); q++) {
+            std::vector<double> p = softmax_vector(probabilities[q]);
             
             std::random_device rd;
             std::mt19937 gen(rd());
             std::discrete_distribution<> dist(p.begin(), p.end());
 
-            int chosen_idx = dist(gen);
-            char prediction = idx_to_char.at(chosen_idx); 
+            //int chosen_idx = dist(gen);
+            //char prediction = idx_to_char.at(chosen_idx); 
 
-            output += prediction;
-            if (prediction == labels[q])
+            //output += prediction;
+            if (prediction == ytrain[q])
                 accuracy += 1
         }
         std::cout << "Ground Truth:\n";
