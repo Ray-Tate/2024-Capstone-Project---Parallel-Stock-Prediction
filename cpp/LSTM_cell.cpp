@@ -296,7 +296,11 @@ std::vector<std::vector<double>> elementWiseAdd(const std::vector<std::vector<do
 
     return result;
 }
-
+/*
+    Data Matrix [x][y]
+    x - feature sample
+    y - feature
+*/
 class LSTM {
 private:
     int input_size;
@@ -495,17 +499,24 @@ public:
         std::cout << std::endl;
     }
 
-    void train(std::vector<std::vector<double>> xtrain, std::vector<std::vector<double>> ytrain){
-        int i,j;
+    void train(std::vector<std::vector<double>> xtrain, std::vector<double> ytrain){
+        int i,j,k;
         std::vector<std::vector<double>> preditions;
         std::vector<std::vector<double>> errors;
         std::vector<std::vector<double>> concat_inputs_martix;
+        std::vector<double> error_row;
         for(i=0;i<num_epochs;i++){
             preditions = forward(xtrain);
             errors.clear();
             for(j=0;j<preditions.size();j++){
-                errors.push_back(softmax_vector(scaleVector(preditions[j],-1)));
-                //errors[errors.size() -1][char_to_idx[ytrain[q]]]++; //Likely not needed as it involves hot encoding
+                //Likely not needed as it involves hot encoding
+                //errors.push_back(softmax_vector(scaleVector(preditions[j],-1)));
+                //errors[errors.size() -1][char_to_idx[ytrain[q]]]++; 
+                error_row.empty();
+                for(k=0;k<preditions[0].size();k++){
+                    error_row.push_back(pow(preditions[j][k] - ytrain[j],2));
+                }
+                errors.push_back(error_row);
             }
             //Convert from map to matrix
             concat_inputs_martix.clear();
