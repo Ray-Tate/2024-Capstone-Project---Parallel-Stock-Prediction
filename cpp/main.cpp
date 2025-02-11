@@ -71,7 +71,15 @@ std::vector<double> moving_average(std::vector<double> doubleArray, int windowSi
     return doubleArrayMA;
 }
 
+std::vector<double> getFirst(const std::vector<double>& vec, double N) {
+    int count = std::ceil(N * vec.size());  // Round up to ensure all values are included
+    return std::vector<double>(vec.begin(), vec.begin() + std::min(count, (int)vec.size()));
+}
 
+std::vector<double> getLast(const std::vector<double>& vec, double N) {
+    int count = std::ceil(N * vec.size());  // Round up to ensure all values are included
+    return std::vector<double>(vec.end() - std::min(count, (int)vec.size()), vec.end());
+}
 
 class StockData {
 private:
@@ -102,6 +110,10 @@ public:
 
     std::vector<double> getDoubleArray() const {
         return doubleArray;
+    }
+
+    std::vector<double> getDoubleArrayNormalized() const {
+        return doubleArrayNormalized;
     }
 
     void removeDataFromBeginnnig(int n){
@@ -173,6 +185,15 @@ int main() {
         stock.printStockData();
     }
     target_Y.printStockData();
+
+
+    //Get training portions of data.
+    
+    std::vector<std::vector<double>> allXtrain;
+    for(int i = 0; i<allStockData.size(); i++){
+        allXtrain.push_back(getFirst(allStockData[i].getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]));
+    }
+    
     
     std::cout << "DONE!!!!!!!!\n" << std::endl;
 
