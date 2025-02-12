@@ -193,12 +193,18 @@ int main() {
     for(int i = 0; i<tmp.size() ; i++){
         xTrain[i].push_back(tmp[i]);
     }
-    std::cout << xTrain.size() << "THATS HOW BIG Xtrain is" << std::endl;
+    std::cout << xTrain.size() << " THATS HOW BIG Xtrain is" << std::endl;
 
-    std::vector<double> yTrain = getFirst(target_Y.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
-    std::cout << yTrain.size() << "THATS HOW BIG Ytrain is" << std::endl;
+    std::vector<std::vector<double>> yTrain;
+    tmp = getFirst(target_Y.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+    yTrain.resize(tmp.size());
+    for(int i = 0; i<tmp.size() ; i++){
+        yTrain[i].push_back(tmp[i]);
+    }
 
-    int hidden_size = 25;
+    std::cout << yTrain.size() << " THATS HOW BIG Ytrain is" << std::endl;
+
+    int hidden_size = 50;
     LSTM lstmLayer(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
     
     lstmLayer.train(xTrain, yTrain);

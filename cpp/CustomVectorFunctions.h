@@ -300,12 +300,12 @@ std::vector<std::vector<double>> elementWiseAdd(const std::vector<std::vector<do
     return result;
 }
 
-double sum2DVector(const std::vector<std::vector<double>>& vec) {
+double absSum2DVector(const std::vector<std::vector<double>>& vec) {
     double sum = 0.0;
-    
+
     for (const auto& row : vec) {
         for (double val : row) {
-            sum += val;
+            sum += std::abs(val);  // take the absolute value of each element
         }
     }
 

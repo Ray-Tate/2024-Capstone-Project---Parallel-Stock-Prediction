@@ -91,7 +91,7 @@ public:
         outputs.clear();
     }
 
-    std::vector<std::vector<double>> forward( std::vector<std::vector<double>>& inputs) {
+    std::vector<std::vector<double>> forward(const std::vector<std::vector<double>>& inputs) {
         // Reset the hidden and cell states
         reset();
         
@@ -142,7 +142,7 @@ public:
             std::vector<double> d_hs = addVectors(dotMatrix(transpose(wy), error), dh_next);
 
 
-            // Output Gate Weights and Biases Errors
+            // Output Gate Weights and Biases Errors 
             std::vector<double> tanh_cs = tanh_vector(cell_states[q]);
             std::vector<double> d_o = elementWiseMultiply(elementWiseMultiply(tanh_cs, d_hs), sigmoid_vector(output_gates[q], true));
             d_wo = elementWiseAdd(d_wo, outerProduct(d_o, inputs[q]));
@@ -203,7 +203,16 @@ public:
         std::cout << std::endl;
     }
 
-    void train(std::vector<std::vector<double>> xtrain, std::vector<double> ytrain){
+    void printOrigins(int epoc) const {
+        std::cout << epoc << ", "
+                  << wf[0][0] << ", " << bf[0] << ", "
+                  << wi[0][0] << ", " << bi[0] << ", "
+                  << wc[0][0] << ", " << bc[0] << ", "
+                  << wo[0][0] << ", " << bo[0] << ", "
+                  << wy[0][0] << ", " << by[0] << std::endl;
+    }
+
+    void train(const std::vector<std::vector<double>> xtrain, const std::vector<std::vector<double>> ytrain){
         int i,j,k;
         std::vector<std::vector<double>> preditions;
         std::vector<std::vector<double>> errors;
@@ -218,17 +227,18 @@ public:
                 //errors[errors.size() -1][char_to_idx[ytrain[q]]]++; 
                 error_row.clear();
                 for(k=0;k<preditions[0].size();k++){
-                    error_row.push_back(pow(preditions[j][k] - ytrain[j],2));
+                    error_row.push_back(ytrain[j][k] - preditions[j][k]);
                 }
                 errors.push_back(error_row);
             }
-            std::cout << "Epoc: " << i+1 << " Error: " << sum2DVector(errors) << std::endl;
+            std::cout << "Epoc: " << i+1 << " Error: " << absSum2DVector(errors) << std::endl;
             //Convert from map to matrix
             concat_inputs_martix.clear();
             for(auto input : concat_inputs){
                 concat_inputs_martix.push_back(input.second);
             }
             backward(errors,concat_inputs_martix);
+            printOrigins(i);
         }
     }
 
