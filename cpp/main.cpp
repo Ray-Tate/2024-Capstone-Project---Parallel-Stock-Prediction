@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include "json.hpp"
+#include "LSTM_cell.h"
 
 nlohmann::json getConfig(){
     const std::string configPath = "config.json";
@@ -167,12 +168,10 @@ int main() {
     StockData* mainStockPtr;
     for(StockData& stock : allStockData){
         if(stock.getName() == jsonConfig["STOCK_FOR_VALIDATION"]){
-            std::cout << "Found it" << stock.getName() << std::endl;
             mainStockPtr = &stock;
         }
     }
     StockData target_Y(mainStockPtr->getName(), mainStockPtr->getDoubleArray()); //Create a copy of the main stock for Y
-    std::cout << "Here" << target_Y.getName() << std::endl;
     
     //Resize X and Y (remove beggining from Y cuz no history to predict. Remove end of X to match X/Y lengths)
     target_Y.removeDataFromBeginnnig(jsonConfig["PREDICT_DAYS_AHEAD"]);
@@ -188,12 +187,21 @@ int main() {
 
 
     //Get training portions of data.
-    
-    std::vector<std::vector<double>> allXtrain;
-    for(int i = 0; i<allStockData.size(); i++){
-        allXtrain.push_back(getFirst(allStockData[i].getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]));
+    std::vector<std::vector<double>> xTrain;
+    std::vector tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+    xTrain.resize(tmp.size());
+    for(int i = 0; i<tmp.size() ; i++){
+        xTrain[i].push_back(tmp[i]);
     }
+    std::cout << xTrain.size() << "THATS HOW BIG Xtrain is" << std::endl;
+
+    std::vector<double> yTrain = getFirst(target_Y.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+    std::cout << yTrain.size() << "THATS HOW BIG Ytrain is" << std::endl;
+
+    int hidden_size = 25;
+    LSTM lstmLayer(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
     
+    lstmLayer.train(xTrain, yTrain);
     
     std::cout << "DONE!!!!!!!!\n" << std::endl;
 

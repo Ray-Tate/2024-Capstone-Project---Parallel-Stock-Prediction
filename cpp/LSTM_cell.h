@@ -222,6 +222,7 @@ public:
                 }
                 errors.push_back(error_row);
             }
+            std::cout << "Epoc: " << i+1 << " Error: " << sum2DVector(errors) << std::endl;
             //Convert from map to matrix
             concat_inputs_martix.clear();
             for(auto input : concat_inputs){
@@ -261,19 +262,3 @@ public:
         }
     }*/
 };
-
-
-//+++++ Main +++++
-
-/*int main(){
-    //testing helper functions
-    std::vector<std::vector<double>> weights = initWeights(4,6);
-    for(int i;i<weights.size();i++){
-        for(int j;j<weights[0].size();j++){
-            std::cout << std::to_string(weights[i][j]) << " ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << "DONE!!!" << std::endl;
-    return 0;
-}*/
