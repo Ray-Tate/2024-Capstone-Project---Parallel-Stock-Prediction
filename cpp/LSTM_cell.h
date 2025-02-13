@@ -242,6 +242,7 @@ public:
         }
     }
 
+
     /*void test(std::vector<std::vector<double>> xtrain, std::vector<std::vector<double>> ytrain){
         double accuracy = 0;
         std::vector<std::vector<double>> probabilities = forward(xtrain);

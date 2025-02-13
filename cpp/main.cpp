@@ -56,6 +56,20 @@ std::vector<double> denormalize_data(std::vector<double> doubleArrayNormalized, 
     }
     return doubleArrayDenormalized;
 }
+
+std::vector<double> flatten_2d_vector(const std::vector<std::vector<double>> vec2d) {
+    std::vector<double> flattened;
+    
+    for (const auto& row : vec2d) {
+        if (row.size() != 1) {
+            throw std::invalid_argument("Each inner vector must contain exactly one element.");
+        }
+        flattened.push_back(row[0]);
+    }
+
+    return flattened;
+}
+
 std::vector<double> moving_average(std::vector<double> doubleArray, int windowSize) {
     std::vector<double> doubleArrayMA;
     double moving_total = 0;
@@ -80,6 +94,21 @@ std::vector<double> getFirst(const std::vector<double>& vec, double N) {
 std::vector<double> getLast(const std::vector<double>& vec, double N) {
     int count = std::ceil(N * vec.size());  // Round up to ensure all values are included
     return std::vector<double>(vec.end() - std::min(count, (int)vec.size()), vec.end());
+}
+
+void write_vector_to_file(const std::vector<double>& vec, const std::string& filename) {
+    std::ofstream outFile(filename);
+    
+    if (!outFile) {
+        std::cerr << "Error: Could not open file " << filename << " for writing.\n";
+        return;
+    }
+
+    for (double val : vec) {
+        outFile << val << "\n";  // Write each value on a new line
+    }
+
+    outFile.close();
 }
 
 class StockData {
@@ -204,10 +233,27 @@ int main() {
 
     std::cout << yTrain.size() << " THATS HOW BIG Ytrain is" << std::endl;
 
-    int hidden_size = 50;
+    std::vector<std::vector<double>> xVerify;
+    tmp = getLast(mainStockPtr->getDoubleArrayNormalized(), 1.0 - (double)jsonConfig["TRAIN_SPLIT"]);
+    xVerify.resize(tmp.size());
+    for(int i = 0; i<tmp.size() ; i++){
+        xVerify[i].push_back(tmp[i]);
+    }
+    std::cout << xVerify.size() << " THATS HOW BIG Xverify is" << std::endl;
+
+    int hidden_size = jsonConfig["LSTM_UNITS"];
     LSTM lstmLayer(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
     
     lstmLayer.train(xTrain, yTrain);
+    std::vector<std::vector<double>> trainedPredictionsNorm = lstmLayer.forward(xTrain);
+    std::vector<std::vector<double>> verifiyPredictionsNorm = lstmLayer.forward(xVerify);
+
+    std::vector<double> trainedPredictions = denormalize_data(flatten_2d_vector(trainedPredictionsNorm), mainStockPtr->getDoubleArray());
+    std::vector<double> verifiyPredictions = denormalize_data(flatten_2d_vector(verifiyPredictionsNorm), mainStockPtr->getDoubleArray());
+
+    write_vector_to_file(trainedPredictions, "Trainedpredicitons.txt");
+    write_vector_to_file(verifiyPredictions, "VerificationPredictions.txt");
+
     
     std::cout << "DONE!!!!!!!!\n" << std::endl;
 
