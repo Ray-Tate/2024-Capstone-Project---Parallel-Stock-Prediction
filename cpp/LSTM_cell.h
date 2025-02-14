@@ -243,33 +243,37 @@ public:
     }
 
 
-    /*void test(std::vector<std::vector<double>> xtrain, std::vector<std::vector<double>> ytrain){
-        double accuracy = 0;
+    void test(const std::vector<std::vector<double>>& xtrain, const std::vector<std::vector<double>>& ytrain) {
         std::vector<std::vector<double>> probabilities = forward(xtrain);
+
+        double mse = 0.0, mae = 0.0;
+        size_t n = ytrain.size();
+        size_t m = ytrain[0].size();  
         
-        std::string output = "";
-        for (size_t q = 0; q < ytrain.size(); q++) {
-            std::vector<double> p = softmax_vector(probabilities[q]);
-            
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::discrete_distribution<> dist(p.begin(), p.end());
-
-            //int chosen_idx = dist(gen);
-            //char prediction = idx_to_char.at(chosen_idx); 
-
-            //output += prediction;
-            if (prediction == ytrain[q])
-                accuracy += 1
+        for (size_t i = 0; i < n; i++) {
+            for (size_t j = 0; j < m; j++) {
+                double error = probabilities[i][j] - ytrain[i][j];
+                mse += error * error;
+                mae += std::abs(error);
+            }
         }
+
+        mse /= (n * m);
+        mae /= (n * m);
+
+        // Display results
         std::cout << "Ground Truth:\n";
-        for (const std::vector<double>& row : ytrain) {
-            for (double val : row)
-                std::cout << val << " ";
+        for (const auto& row : ytrain) {
+            for (double label : row) std::cout << label << " ";
             std::cout << "\n";
         }
-        std::cout << "Predictions:\n" << output << "\n";
-        std::cout << "Accuracy: " << (accuracy * 100.0 / xtrain.size()) << "%";
+
+        std::cout << "\nPredictions:\n";
+        for (const auto& row : probabilities) {
+            for (double pred : row) std::cout << pred << " ";
+            std::cout << "\n";
         }
-    }*/
+
+        std::cout << "\nMean Squared Error: " << mse << "\nMean Absolute Error: " << mae << "\n";
+    }
 };
