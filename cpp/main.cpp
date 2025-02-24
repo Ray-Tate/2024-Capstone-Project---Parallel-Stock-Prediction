@@ -4,6 +4,7 @@
 #include <string>
 #include "json.hpp"
 #include "LSTM_cell.h"
+#include "layers.hpp"
 
 nlohmann::json getConfig(){
     const std::string configPath = "config.json";
@@ -217,7 +218,7 @@ int main() {
 
     //Get training portions of data.
     std::vector<std::vector<double>> xTrain;
-    std::vector tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+    std::vector<double> tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
     xTrain.resize(tmp.size());
     for(int i = 0; i<tmp.size() ; i++){
         xTrain[i].push_back(tmp[i]);
@@ -242,12 +243,54 @@ int main() {
     std::cout << xVerify.size() << " THATS HOW BIG Xverify is" << std::endl;
 
     int hidden_size = jsonConfig["LSTM_UNITS"];
-    LSTM lstmLayer(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
+    LSTM lstmLayer1(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
+    Dropout dropoutLayer1(0.2);
+    LSTM lstmLayer2(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
+    Dropout dropoutLayer2(0.2);
+    Dense denseLayer(jsonConfig["LEARNING_RATE"],xTrain[0].size());
     
-    lstmLayer.train(xTrain, yTrain);
-    std::vector<std::vector<double>> trainedPredictionsNorm = lstmLayer.forward(xTrain);
-    std::vector<std::vector<double>> verifiyPredictionsNorm = lstmLayer.forward(xVerify);
+    //Training
 
+    int i,j;
+        std::vector<std::vector<double>> lstmOutput1;
+        std::vector<std::vector<double>> lstmOutputError1;
+        std::vector<std::vector<double>> lstmOutput2;
+        std::vector<std::vector<double>> lstmOutputError2;
+        std::vector<double> preditions;
+        std::vector<double> errors;
+        std::vector<std::vector<double>> concat_inputs_martix;
+        std::vector<double> error_row;
+        for(i=0;i<jsonConfig["EPOCHS"];i++){
+            lstmOutput1 = lstmLayer1.forward(xTrain);
+            lstmOutput2 = lstmLayer2.forward(dropoutLayer1.forward(lstmOutput1));
+            preditions = denseLayer.forward(dropoutLayer2.forward(lstmOutput2));
+            errors.clear();
+            for(j=0;j<preditions.size();j++){
+                errors.push_back(yTrain[j] - preditions[j]);
+            }
+            std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
+            //Convert from map to matrix
+            concat_inputs_martix.clear();
+            for(auto input : concat_inputs){
+                concat_inputs_martix.push_back(input.second);
+            }
+            //Prediction
+            lstmOutputError2 = denseLayer.backward(errors,lstmOutput2,dropoutLayer2.ignore_elements);
+            lstmLayer2.backward(lstmOutputError2,lstmOutput1);
+            lstmLayer1.backward(lstmOutputError1,concat_inputs_martix);
+            
+            printOrigins(i);
+        }
+
+    //old train
+    //lstmLayer1.train(xTrain, yTrain);
+    
+    
+    
+    //old predict
+    //std::vector<std::vector<double>> trainedPredictionsNorm = lstmLayer1.forward(xTrain);
+    //std::vector<std::vector<double>> verifiyPredictionsNorm = lstmLayer1.forward(xVerify);
+    
     std::vector<double> trainedPredictions = denormalize_data(flatten_2d_vector(trainedPredictionsNorm), mainStockPtr->getDoubleArray());
     std::vector<double> verifiyPredictions = denormalize_data(flatten_2d_vector(verifiyPredictionsNorm), mainStockPtr->getDoubleArray());
 

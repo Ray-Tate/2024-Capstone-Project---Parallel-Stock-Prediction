@@ -133,7 +133,8 @@ public:
         
         for (int q = inputs.size() - 1; q >= 0; --q) {
             std::vector<double> error = errors[q];
-
+            //Errors are y - h(x)
+            
             // Final Gate Weights and Biases Errors
             d_wy = elementWiseAdd(d_wy, outerProduct(error, hidden_states[q]));
             d_by = addVectors(d_by, error);
@@ -212,6 +213,7 @@ public:
                   << wy[0][0] << ", " << by[0] << std::endl;
     }
 
+
     void train(const std::vector<std::vector<double>> xtrain, const std::vector<std::vector<double>> ytrain){
         int i,j,k;
         std::vector<std::vector<double>> preditions;
@@ -238,6 +240,7 @@ public:
                 concat_inputs_martix.push_back(input.second);
             }
             backward(errors,concat_inputs_martix);
+            
             printOrigins(i);
         }
     }

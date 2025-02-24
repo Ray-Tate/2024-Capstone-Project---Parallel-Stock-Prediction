@@ -21,7 +21,7 @@ std::vector<std::vector<double>> initWeights(int input_size,int output_size){
     for(int i = 0; i< output_size;i++){
         row = {};
         for(int j = 0; j<input_size;j++){
-            row.push_back(dis(gen));
+            row.push_back(dis(gen)*val);
         }
         weights.push_back(row);
     }
@@ -307,6 +307,16 @@ double absSum2DVector(const std::vector<std::vector<double>>& vec) {
         for (double val : row) {
             sum += std::abs(val);  // take the absolute value of each element
         }
+    }
+
+    return sum;
+}
+
+double absSumVector(const std::vector<double>& vec) {
+    double sum = 0.0;
+
+    for (const auto& val : vec) {
+        sum += std::abs(val);  // take the absolute value of each element
     }
 
     return sum;
