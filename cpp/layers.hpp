@@ -75,6 +75,36 @@ class Dense{
             return outputs;
         }
         //Errors are (y - h(x))
+        std::vector<std::vector<double>> backward(const std::vector<double>errors, const std::vector<std::vector<double>>& inputs){
+            int i,j;
+            std::vector<std::vector<double>> prev_layer_error = zeroMatrix(inputs.size(),inputs[0].size());
+            double sum;
+           
+            for(i=0;i<inputs.size();i++){
+                prev_layer_error[i] = scaleVector(weights,errors[i]);
+            }
+
+            for(j=0;j<=inputs[0].size();j++){
+                sum =0;
+                for(i=0;i<inputs.size();i++){
+                    if(j=0){
+                        sum += errors[i]; 
+                    }else{
+                        sum += errors[i]*inputs[i][j-1];
+                    }
+                    
+                }
+                if(j=0){
+                    bias = bias - learning_rate*sum/inputs.size();
+                }else{
+                    weights[j-1] = weights[j-1] - learning_rate*sum/inputs.size();
+                }
+            }
+
+            return prev_layer_error;
+        }
+
+        //With Ignore Mask
         std::vector<std::vector<double>> backward(const std::vector<double>errors, const std::vector<std::vector<double>>& inputs , std::unordered_map<int, std::unordered_map<int, bool>> ignore_elements){
             int i,j;
             std::vector<std::vector<double>> prev_layer_error = zeroMatrix(inputs.size(),inputs[0].size());
