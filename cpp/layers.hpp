@@ -17,7 +17,7 @@ private:
     
 
 public:
-    std::unordered_map<int, std::unordered_map<int, bool>> ignore_elements; //contains the coordinates of each of the elements to ignore
+    std::vector<std::vector<double>> ignore_mask; //contains the coordinates of each of the elements to ignore
     
     Dropout(float rate)
     :rate(rate){
@@ -31,15 +31,16 @@ public:
         std::mt19937 gen(rd());
         std::bernoulli_distribution dis(rate);
         std::vector<std::vector<double>> outputs = inputs;
-        ignore_elements.clear();
+        ignore_mask.clear();
         for(j=0;j<inputs[0].size();j++){
             dis.reset();
             for(i=0;i<inputs.size();i++){
                 if(dis(gen)){
                     outputs[i][j] = 0;
-                    ignore_elements[i][j] = true;
+                    ignore_mask[i][j] = 0;
                 }else{
                     outputs[i][j] *= scale;
+                    ignore_mask[i][j] = 1;
                 }
             }
         }
@@ -105,21 +106,25 @@ class Dense{
         }
 
         //With Ignore Mask
-        std::vector<std::vector<double>> backward(const std::vector<double>errors, const std::vector<std::vector<double>>& inputs , std::unordered_map<int, std::unordered_map<int, bool>> ignore_elements){
+        std::vector<std::vector<double>> backward(const std::vector<double>errors, const std::vector<std::vector<double>>& inputs , std::vector<std::vector<double>>& ignore_mask){
             int i,j;
             std::vector<std::vector<double>> prev_layer_error = zeroMatrix(inputs.size(),inputs[0].size());
             double sum;
+            
+            for(i=0;i<inputs.size();i++){
+                prev_layer_error[i] = scaleVector(weights,errors[i]);
+            }
+
             for(j=0;j<=inputs[0].size();j++){
                 sum =0;
                 for(i=0;i<inputs.size();i++){
-                    if(ignore_elements.find(i) != ignore_elements.end()){
-                        if(ignore_elements[i].find(j) != ignore_elements[i].end()){
-                            continue;
-                        }
-                    }
+                    
                     if(j=0){
                         sum += errors[i]; 
                     }else{
+                        if(ignore_mask[i][j-1] == 0){
+                            continue;
+                        }
                         sum += errors[i]*inputs[i][j-1];
                     }
                     
@@ -131,9 +136,7 @@ class Dense{
                 }
             }
 
-            for(i=0;i<inputs.size();i++){
-                prev_layer_error[i] = scaleVector(weights,errors[i]);
-            }
+            
 
             return prev_layer_error;
         }

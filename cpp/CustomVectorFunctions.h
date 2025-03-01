@@ -300,6 +300,26 @@ std::vector<std::vector<double>> elementWiseAdd(const std::vector<std::vector<do
     return result;
 }
 
+std::vector<std::vector<double>> elementWiseMultiply(const std::vector<std::vector<double>>& mat1, const std::vector<std::vector<double>>& mat2) {
+    // Ensure that both matrices have the same dimensions
+    if (mat1.size() != mat2.size() || mat1[0].size() != mat2[0].size()) {
+        std::cerr << "Error: Matrices must have the same dimensions for element-wise addition." << std::endl;
+        return {};  // Return empty matrix in case of error
+    }
+
+    // Create a new matrix to store the result
+    std::vector<std::vector<double>> result(mat1.size(), std::vector<double>(mat1[0].size()));
+
+    // Perform element-wise addition
+    for (size_t i = 0; i < mat1.size(); ++i) {
+        for (size_t j = 0; j < mat1[i].size(); ++j) {
+            result[i][j] = mat1[i][j] * mat2[i][j];
+        }
+    }
+
+    return result;
+}
+
 double absSum2DVector(const std::vector<std::vector<double>>& vec) {
     double sum = 0.0;
 

@@ -186,12 +186,18 @@ int StockData::arrayLength = 0;
 
 int main() {
     nlohmann::json jsonConfig = getConfig();
-    
+    std::string stock_for_validation = jsonConfig["STOCK_FOR_VALIDATION"];
+    int stock_for_validation_index;
     //Read the config for which stocks to use and read in the respective data text files
     std::vector<StockData> allStockData;
+    int i =0;
     for(std::string stock : jsonConfig["STOCKS"]){
         StockData tmp(stock, file2arr("InputData/"+stock+".txt"));
         allStockData.push_back(tmp);
+        if(stock == stock_for_validation){
+            stock_for_validation_index = i;
+        }
+        i++;
     }
 
     //Get a pointer to the main stock
@@ -251,37 +257,31 @@ int main() {
     
     //Training
 
-    int i,j;
-        std::vector<std::vector<double>> lstmOutput1;
-        std::vector<std::vector<double>> lstmOutputError1;
-        std::vector<std::vector<double>> lstmOutput2;
-        std::vector<std::vector<double>> lstmOutputError2;
-        std::vector<double> preditions;
-        std::vector<double> errors;
-        std::vector<std::vector<double>> concat_inputs_martix;
-        std::vector<double> error_row;
-        for(i=0;i<jsonConfig["EPOCHS"];i++){
-            lstmOutput1 = lstmLayer1.forward(xTrain);
-            lstmOutput2 = lstmLayer2.forward(dropoutLayer1.forward(lstmOutput1));
-            preditions = denseLayer.forward(dropoutLayer2.forward(lstmOutput2));
-            errors.clear();
-            for(j=0;j<preditions.size();j++){
-                errors.push_back(yTrain[j] - preditions[j]);
-            }
-            std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
-            //Convert from map to matrix
-            concat_inputs_martix.clear();
-            for(auto input : concat_inputs){
-                concat_inputs_martix.push_back(input.second);
-            }
-            
-            lstmOutputError2 = denseLayer.backward(errors,lstmOutput2,dropoutLayer2.ignore_elements);
-            lstmLayer2.backward(lstmOutputError2,lstmOutput1);
-            lstmLayer1.backward(lstmOutputError1,concat_inputs_martix);
-            
-            lstmLayer1.printOrigins(i);
-            lstmLayer2.printOrigins(i);
+    int j;
+    std::vector<std::vector<double>> lstmOutput1;
+    std::vector<std::vector<double>> lstmOutputError1;
+    std::vector<std::vector<double>> lstmOutput2;
+    std::vector<std::vector<double>> lstmOutputError2;
+    std::vector<double> preditions;
+    std::vector<double> errors;
+    
+    for(i=0;i<jsonConfig["EPOCHS"];i++){
+        lstmOutput1 = lstmLayer1.forward(xTrain);
+        lstmOutput2 = lstmLayer2.forward(dropoutLayer1.forward(lstmOutput1)); //Error happening here
+        preditions = denseLayer.forward(dropoutLayer2.forward(lstmOutput2));
+        errors.clear();
+        for(j=0;j<preditions.size();j++){
+            errors.push_back(yTrain[j][stock_for_validation_index] - preditions[j]);
         }
+        std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
+        
+        lstmOutputError2 = denseLayer.backward(errors,lstmOutput2,dropoutLayer2.ignore_mask);
+        lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs());
+        lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
+        
+        lstmLayer1.printOrigins(i);
+        lstmLayer2.printOrigins(i);
+    }
 
     //old train
     //lstmLayer1.train(xTrain, yTrain);
