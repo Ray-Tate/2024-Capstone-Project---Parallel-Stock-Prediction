@@ -276,7 +276,7 @@ int main() {
         std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
         
         lstmOutputError2 = denseLayer.backward(errors,lstmOutput2,dropoutLayer2.ignore_mask);
-        lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs());
+        lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs(),dropoutLayer1.ignore_mask);
         lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
         
         lstmLayer1.printOrigins(i);
