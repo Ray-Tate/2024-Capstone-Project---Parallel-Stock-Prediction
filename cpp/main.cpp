@@ -287,6 +287,7 @@ int main() {
     //lstmLayer1.train(xTrain, yTrain);
     
     //Prediction
+    
     lstmOutput1 = lstmLayer1.forward(xTrain);
     lstmOutput2 = lstmLayer2.forward(lstmOutput1);
     std::vector<double> trainedPredictionsNorm = denseLayer.forward(lstmOutput2);
@@ -294,15 +295,15 @@ int main() {
     lstmOutput1 = lstmLayer1.forward(xVerify);
     lstmOutput2 = lstmLayer2.forward(lstmOutput1);
     std::vector<double> verifiyPredictionsNorm = denseLayer.forward(lstmOutput2);
+    
+    std::vector<double> trainedPredictions = denormalize_data(trainedPredictionsNorm, mainStockPtr->getDoubleArray());
+    std::vector<double> verifiyPredictions = denormalize_data(verifiyPredictionsNorm, mainStockPtr->getDoubleArray());
 
     //old predict
     //std::vector<std::vector<double>> trainedPredictionsNorm = lstmLayer1.forward(xTrain);
     //std::vector<std::vector<double>> verifiyPredictionsNorm = lstmLayer1.forward(xVerify);
     //std::vector<double> trainedPredictions = denormalize_data(flatten_2d_vector(trainedPredictionsNorm), mainStockPtr->getDoubleArray());
     //std::vector<double> verifiyPredictions = denormalize_data(flatten_2d_vector(verifiyPredictionsNorm), mainStockPtr->getDoubleArray());
-
-    std::vector<double> trainedPredictions = denormalize_data(trainedPredictionsNorm, mainStockPtr->getDoubleArray());
-    std::vector<double> verifiyPredictions = denormalize_data(verifiyPredictionsNorm, mainStockPtr->getDoubleArray());
 
     write_vector_to_file(trainedPredictions, "Trainedpredicitons.txt");
     write_vector_to_file(verifiyPredictions, "VerificationPredictions.txt");

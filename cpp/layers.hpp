@@ -31,7 +31,7 @@ public:
         std::mt19937 gen(rd());
         std::bernoulli_distribution dis(rate);
         std::vector<std::vector<double>> outputs = inputs;
-        ignore_mask.clear();
+        ignore_mask = zeroMatrix(inputs.size(),inputs[0].size());
         for(j=0;j<inputs[0].size();j++){
             dis.reset();
             for(i=0;i<inputs.size();i++){
@@ -42,6 +42,7 @@ public:
                     outputs[i][j] *= scale;
                     ignore_mask[i][j] = 1;
                 }
+                
             }
         }
         return outputs;
