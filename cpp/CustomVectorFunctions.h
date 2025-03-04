@@ -342,4 +342,8 @@ double absSumVector(const std::vector<double>& vec) {
     return sum;
 }
 
+void printMatrixDimensions(std::vector<std::vector<double>> mat){
+    std:: cout << "matrix[" << mat.size() << "]["  << mat[0].size() << "]" << std::endl;
+}
+
 #endif

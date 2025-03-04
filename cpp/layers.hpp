@@ -81,22 +81,21 @@ class Dense{
             int i,j;
             std::vector<std::vector<double>> prev_layer_error = zeroMatrix(inputs.size(),inputs[0].size());
             double sum;
-           
             for(i=0;i<inputs.size();i++){
                 prev_layer_error[i] = scaleVector(weights,errors[i]);
             }
-
             for(j=0;j<=inputs[0].size();j++){
                 sum =0;
                 for(i=0;i<inputs.size();i++){
-                    if(j=0){
+                    //std::cout << "testi" << i<<std::endl;
+                    if(j==0){
                         sum += errors[i]; 
                     }else{
                         sum += errors[i]*inputs[i][j-1];
                     }
                     
                 }
-                if(j=0){
+                if(j==0){
                     bias = bias - learning_rate*sum/inputs.size();
                 }else{
                     weights[j-1] = weights[j-1] - learning_rate*sum/inputs.size();
@@ -120,7 +119,7 @@ class Dense{
                 sum =0;
                 for(i=0;i<inputs.size();i++){
                     
-                    if(j=0){
+                    if(j==0){
                         sum += errors[i]; 
                     }else{
                         if(ignore_mask[i][j-1] == 0){
@@ -130,7 +129,7 @@ class Dense{
                     }
                     
                 }
-                if(j=0){
+                if(j==0){
                     bias = bias - learning_rate*sum/inputs.size();
                 }else{
                     weights[j-1] = weights[j-1] - learning_rate*sum/inputs.size();

@@ -267,18 +267,22 @@ int main() {
     
     for(i=0;i<jsonConfig["EPOCHS"];i++){
         lstmOutput1 = lstmLayer1.forward(xTrain);
-        lstmOutput2 = lstmLayer2.forward(dropoutLayer1.forward(lstmOutput1)); //Error happening here
+        lstmOutput2 = lstmLayer2.forward(dropoutLayer1.forward(lstmOutput1)); 
         preditions = denseLayer.forward(dropoutLayer2.forward(lstmOutput2));
         errors.clear();
         for(j=0;j<preditions.size();j++){
             errors.push_back(yTrain[j][stock_for_validation_index] - preditions[j]);
         }
         std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
-        
+        std::cout <<"Backpropagating dense" << std::endl;
         lstmOutputError2 = denseLayer.backward(errors,lstmOutput2,dropoutLayer2.ignore_mask);
-        lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs(),dropoutLayer1.ignore_mask);
+        std::cout <<"Backpropagating lstm2" << std::endl;
+        printMatrixDimensions(lstmOutputError2);
+        printMatrixDimensions(lstmLayer2.getConcatInputs());
+        lstmOutputError1 = lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs(),dropoutLayer1.ignore_mask);
+        std::cout <<"Backpropagating lstm1" << std::endl;
         lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
-        
+        std::cout <<"Print origins" << std::endl;
         lstmLayer1.printOrigins(i);
         lstmLayer2.printOrigins(i);
     }
