@@ -1,3 +1,5 @@
+#include <iostream>
+#include <numeric>
 #include "CustomVectorFunctions.h"
 
 /*
@@ -137,7 +139,7 @@ public:
         for (int q = inputs.size() - 1; q >= 0; --q) {
             std::vector<double> error = errors[q];
             //Errors are y - h(x)
-            
+
             // Final Gate Weights and Biases Errors
             d_wy = elementWiseAdd(d_wy, outerProduct(error, hidden_states[q]));
             d_by = addVectors(d_by, error);
@@ -145,13 +147,11 @@ public:
             // Hidden State Error
             std::vector<double> d_hs = addVectors(dotMatrix(transpose(wy), error), dh_next);
 
-
             // Output Gate Weights and Biases Errors 
             std::vector<double> tanh_cs = tanh_vector(cell_states[q]);
             std::vector<double> d_o = elementWiseMultiply(elementWiseMultiply(tanh_cs, d_hs), sigmoid_vector(output_gates[q], true));
             d_wo = elementWiseAdd(d_wo, outerProduct(d_o, inputs[q]));
             d_bo = addVectors(d_bo, d_o);
-
             // Cell State Error
             std::vector<double> d_cs = addVectors(elementWiseMultiply(elementWiseMultiply(tanh_vector(tanh_vector(cell_states[q]), true),output_gates[q]),d_hs),dc_next);
 
@@ -159,7 +159,6 @@ public:
             std::vector<double> d_f = elementWiseMultiply(elementWiseMultiply(d_cs, cell_states[q - 1]),sigmoid_vector(forget_gates[q], true));
             d_wf = elementWiseAdd(d_wf, outerProduct(d_f, inputs[q]));
             d_bf = addVectors(d_bf, d_f);
-
             // Input Gate Weights and Biases Errors
             std::vector<double> d_i = elementWiseMultiply(elementWiseMultiply(d_cs, candidate_gates[q]),sigmoid_vector(input_gates[q], true));
             d_wi = elementWiseAdd(d_wi, outerProduct(d_i, inputs[q]));
@@ -169,10 +168,9 @@ public:
             std::vector<double> d_c = elementWiseMultiply(elementWiseMultiply(d_cs, input_gates[q]),tanh_vector(candidate_gates[q], true));
             d_wc = elementWiseAdd(d_wc, outerProduct(d_c, inputs[q]));
             d_bc = addVectors(d_bc, d_c);
-
             // Concatenated Input Error (Sum of Error at Each Gate!)
             std::vector<double> d_z = addVectors(addVectors(dotMatrix(transpose(wf), d_f),dotMatrix(transpose(wi), d_i)),addVectors(dotMatrix(transpose(wc), d_c),dotMatrix(transpose(wo), d_o)));
-            prev_layer_error.insert(prev_layer_error.begin(),d_z);
+            prev_layer_error.insert(prev_layer_error.begin(),{sumVector(d_z)});//Only single feature
 
             // Error of Hidden State and Cell State at Next Time Step
             dh_next = std::vector<double>(d_z.begin(), d_z.begin() + hidden_size);
@@ -198,89 +196,7 @@ public:
         return prev_layer_error;
     }
 
-    //Droput mask version
-    std::vector<std::vector<double>> backward(const std::vector<std::vector<double>>& errors, const std::vector<std::vector<double>>& inputs, const std::vector<std::vector<double>>& ignore_mask) {
-        std::vector<std::vector<double>> d_wf = zeroMatrix(wf.size(), wf[0].size());
-        std::vector<std::vector<double>> d_wi = zeroMatrix(wi.size(), wi[0].size());
-        std::vector<std::vector<double>> d_wc = zeroMatrix(wc.size(), wc[0].size());
-        std::vector<std::vector<double>> d_wo = zeroMatrix(wo.size(), wo[0].size());
-        std::vector<std::vector<double>> d_wy = zeroMatrix(wy.size(), wy[0].size());
-
-        std::vector<double> d_bf = zeroVector(bf.size());
-        std::vector<double> d_bi = zeroVector(bi.size());
-        std::vector<double> d_bc = zeroVector(bc.size());
-        std::vector<double> d_bo = zeroVector(bo.size());
-        std::vector<double> d_by = zeroVector(by.size());
-        
-        std::vector<double> dh_next = zeroVector(hidden_states[0].size());
-        std::vector<double> dc_next = zeroVector(cell_states[0].size());
-        
-        std::vector<std::vector<double>> prev_layer_error;
-        std::vector<std::vector<double>> masked_input = elementWiseMultiply(inputs, ignore_mask);
-
-        for (int q = inputs.size() - 1; q >= 0; --q) {
-            std::vector<double> error = errors[q];
-            //Errors are y - h(x)
-            
-            // Final Gate Weights and Biases Errors
-            d_wy = elementWiseAdd(d_wy, outerProduct(error, hidden_states[q]));
-            d_by = addVectors(d_by, error);
-
-            // Hidden State Error
-            std::vector<double> d_hs = addVectors(dotMatrix(transpose(wy), error), dh_next);
-
-
-            // Output Gate Weights and Biases Errors 
-            std::vector<double> tanh_cs = tanh_vector(cell_states[q]);
-            std::vector<double> d_o = elementWiseMultiply(elementWiseMultiply(tanh_cs, d_hs), sigmoid_vector(output_gates[q], true));
-            d_wo = elementWiseAdd(d_wo, outerProduct(d_o, masked_input[q]));
-            d_bo = addVectors(d_bo, d_o);
-
-            // Cell State Error
-            std::vector<double> d_cs = addVectors(elementWiseMultiply(elementWiseMultiply(tanh_vector(tanh_vector(cell_states[q]), true),output_gates[q]),d_hs),dc_next);
-
-            // Forget Gate Weights and Biases Errors
-            std::vector<double> d_f = elementWiseMultiply(elementWiseMultiply(d_cs, cell_states[q - 1]),sigmoid_vector(forget_gates[q], true));
-            d_wf = elementWiseAdd(d_wf, outerProduct(d_f, masked_input[q]));
-            d_bf = addVectors(d_bf, d_f);
-
-            // Input Gate Weights and Biases Errors
-            std::vector<double> d_i = elementWiseMultiply(elementWiseMultiply(d_cs, candidate_gates[q]),sigmoid_vector(input_gates[q], true));
-            d_wi = elementWiseAdd(d_wi, outerProduct(d_i, masked_input[q]));
-            d_bi = addVectors(d_bi, d_i);
-            
-            // Candidate Gate Weights and Biases Errors
-            std::vector<double> d_c = elementWiseMultiply(elementWiseMultiply(d_cs, input_gates[q]),tanh_vector(candidate_gates[q], true));
-            d_wc = elementWiseAdd(d_wc, outerProduct(d_c, masked_input[q]));
-            d_bc = addVectors(d_bc, d_c);
-
-            // Concatenated Input Error (Sum of Error at Each Gate!)
-            std::vector<double> d_z = addVectors(addVectors(dotMatrix(transpose(wf), d_f),dotMatrix(transpose(wi), d_i)),addVectors(dotMatrix(transpose(wc), d_c),dotMatrix(transpose(wo), d_o)));
-            prev_layer_error.insert(prev_layer_error.begin(),d_z);
-
-            // Error of Hidden State and Cell State at Next Time Step
-            dh_next = std::vector<double>(d_z.begin(), d_z.begin() + hidden_size);
-            dc_next = elementWiseMultiply(forget_gates[q], d_cs);
-            
-        }
-
-        clip(d_wf); clip(d_wi); clip(d_wc); clip(d_wo); clip(d_wy);
-        clip(d_bf); clip(d_bi); clip(d_bc); clip(d_bo); clip(d_by);
-        
-        wf = elementWiseAdd(wf, scaleMatrix(d_wf, learning_rate));
-        wi = elementWiseAdd(wi, scaleMatrix(d_wi, learning_rate));
-        wc = elementWiseAdd(wc, scaleMatrix(d_wc, learning_rate));
-        wo = elementWiseAdd(wo, scaleMatrix(d_wo, learning_rate));
-        wy = elementWiseAdd(wy, scaleMatrix(d_wy, learning_rate));
-
-        bf = addVectors(bf, scaleVector(d_bf, learning_rate));
-        bi = addVectors(bi, scaleVector(d_bi, learning_rate));
-        bc = addVectors(bc, scaleVector(d_bc, learning_rate));
-        bo = addVectors(bo, scaleVector(d_bo, learning_rate));
-        by = addVectors(by, scaleVector(d_by, learning_rate));
-
-        return prev_layer_error;
-    }
+    
 
     std::vector<std::vector<double>> getConcatInputs(){
         std::vector<std::vector<double>> concat_inputs_martix;
@@ -322,9 +238,6 @@ public:
             preditions = forward(xtrain);
             errors.clear();
             for(j=0;j<preditions.size();j++){
-                //Likely not needed as it involves hot encoding
-                //errors.push_back(softmax_vector(scaleVector(preditions[j],-1)));
-                //errors[errors.size() -1][char_to_idx[ytrain[q]]]++; 
                 error_row.clear();
                 for(k=0;k<preditions[0].size();k++){
                     error_row.push_back(ytrain[j][k] - preditions[j][k]);

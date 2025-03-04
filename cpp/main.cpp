@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <cmath>
 #include "json.hpp"
 #include "LSTM_cell.h"
 #include "layers.hpp"
@@ -264,6 +265,7 @@ int main() {
     std::vector<std::vector<double>> lstmOutputError2;
     std::vector<double> preditions;
     std::vector<double> errors;
+    std::vector<double> loss_history;
     
     for(i=0;i<jsonConfig["EPOCHS"];i++){
         lstmOutput1 = lstmLayer1.forward(xTrain);
@@ -273,14 +275,13 @@ int main() {
         for(j=0;j<preditions.size();j++){
             errors.push_back(yTrain[j][stock_for_validation_index] - preditions[j]);
         }
+        loss_history.push_back(absSumVector(errors));
         std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
-        std::cout <<"Backpropagating dense" << std::endl;
         lstmOutputError2 = denseLayer.backward(errors,lstmOutput2,dropoutLayer2.ignore_mask);
-        std::cout <<"Backpropagating lstm2" << std::endl;
-        printMatrixDimensions(lstmOutputError2);
-        printMatrixDimensions(lstmLayer2.getConcatInputs());
-        lstmOutputError1 = lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs(),dropoutLayer1.ignore_mask);
-        std::cout <<"Backpropagating lstm1" << std::endl;
+        lstmOutputError1 = lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs());
+        //printMatrixDimensions(lstmOutputError1);
+        //printMatrixDimensions(dropoutLayer1.ignore_mask);
+        //printMatrixDimensions(lstmLayer1.getConcatInputs());
         lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
         std::cout <<"Print origins" << std::endl;
         lstmLayer1.printOrigins(i);
