@@ -313,14 +313,14 @@ int main() {
     write_vector_to_file(trainedPredictions, "Trainedpredicitons.txt");
     write_vector_to_file(verifiyPredictions, "VerificationPredictions.txt");
 
-    std::string cmd;
+    /*std::string cmd;
     if (argc < 2) {
         cmd = "python graphing.py ";
     }else{
         cmd = "python graphing.py " + std::string(argv[1]);
     }
 
-    std::cout << system(cmd.c_str()) << std::endl;
+    std::cout << system(cmd.c_str()) << std::endl;*/
 
     
     std::cout << "DONE!!!!!!!!\n" << std::endl;
