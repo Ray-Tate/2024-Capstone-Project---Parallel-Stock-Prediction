@@ -2,11 +2,12 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <cmath>
 #include "json.hpp"
 #include "LSTM_cell.h"
+#include "layers.hpp"
 
-nlohmann::json getConfig(){
-    const std::string configPath = "config.json";
+nlohmann::json getConfig(std::string configPath = "config.json"){
     std::ifstream configFile(configPath);
     if (!configFile.is_open()) { //If error opening the file
         std::cerr << "Unable to open file: " + configPath << std::endl;
@@ -185,12 +186,19 @@ int StockData::arrayLength = 0;
 
 int main() {
     nlohmann::json jsonConfig = getConfig();
-    
+    std::string stock_for_validation = jsonConfig["STOCK_FOR_VALIDATION"];
+    int stock_for_validation_index;
     //Read the config for which stocks to use and read in the respective data text files
     std::vector<StockData> allStockData;
+    int i =0;
     for(std::string stock : jsonConfig["STOCKS"]){
+        stock = jsonConfig["STOCK_FOR_VALIDATION"];
         StockData tmp(stock, file2arr("InputData/"+stock+".txt"));
         allStockData.push_back(tmp);
+        if(stock == stock_for_validation){
+            stock_for_validation_index = i;
+        }
+        i++;
     }
 
     //Get a pointer to the main stock
@@ -217,7 +225,7 @@ int main() {
 
     //Get training portions of data.
     std::vector<std::vector<double>> xTrain;
-    std::vector tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+    std::vector<double> tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
     xTrain.resize(tmp.size());
     for(int i = 0; i<tmp.size() ; i++){
         xTrain[i].push_back(tmp[i]);
@@ -234,7 +242,7 @@ int main() {
     std::cout << yTrain.size() << " THATS HOW BIG Ytrain is" << std::endl;
 
     std::vector<std::vector<double>> xVerify;
-    tmp = getLast(mainStockPtr->getDoubleArrayNormalized(), 1.0 - (double)jsonConfig["TRAIN_SPLIT"]);
+    tmp = getLast(mainStockPtr->getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]);
     xVerify.resize(tmp.size());
     for(int i = 0; i<tmp.size() ; i++){
         xVerify[i].push_back(tmp[i]);
@@ -242,17 +250,77 @@ int main() {
     std::cout << xVerify.size() << " THATS HOW BIG Xverify is" << std::endl;
 
     int hidden_size = jsonConfig["LSTM_UNITS"];
-    LSTM lstmLayer(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
+    LSTM lstmLayer1(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
+    Dropout dropoutLayer1(0.2);
+    LSTM lstmLayer2(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
+    Dropout dropoutLayer2(0.2);
+    Dense denseLayer(jsonConfig["LEARNING_RATE"],xTrain[0].size());
     
-    lstmLayer.train(xTrain, yTrain);
-    std::vector<std::vector<double>> trainedPredictionsNorm = lstmLayer.forward(xTrain);
-    std::vector<std::vector<double>> verifiyPredictionsNorm = lstmLayer.forward(xVerify);
+    //Training
 
-    std::vector<double> trainedPredictions = denormalize_data(flatten_2d_vector(trainedPredictionsNorm), mainStockPtr->getDoubleArray());
-    std::vector<double> verifiyPredictions = denormalize_data(flatten_2d_vector(verifiyPredictionsNorm), mainStockPtr->getDoubleArray());
+    int j;
+    std::vector<std::vector<double>> lstmOutput1;
+    std::vector<std::vector<double>> lstmOutputError1;
+    std::vector<std::vector<double>> lstmOutput2;
+    std::vector<std::vector<double>> lstmOutputError2;
+    std::vector<double> preditions;
+    std::vector<double> errors;
+    std::vector<double> loss_history;
+    
+    for(i=0;i<jsonConfig["EPOCHS"];i++){
+        lstmOutput1 = lstmLayer1.forward(xTrain);
+        lstmOutput2 = lstmLayer2.forward(dropoutLayer1.forward(lstmOutput1)); 
+        preditions = denseLayer.forward(dropoutLayer2.forward(lstmOutput2));
+        errors.clear();
+        for(j=0;j<preditions.size();j++){
+            errors.push_back(yTrain[j][stock_for_validation_index] - preditions[j]);
+        }
+        loss_history.push_back(absSumVector(errors));
+        std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
+        lstmOutputError2 = denseLayer.backward(errors,lstmOutput2,dropoutLayer2.ignore_mask);
+        lstmOutputError1 = lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs());
+        //printMatrixDimensions(lstmOutputError1);
+        //printMatrixDimensions(dropoutLayer1.ignore_mask);
+        //printMatrixDimensions(lstmLayer1.getConcatInputs());
+        lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
+        std::cout <<"Print origins" << std::endl;
+        lstmLayer1.printOrigins(i);
+        lstmLayer2.printOrigins(i);
+    }
+
+    //old train
+    //lstmLayer1.train(xTrain, yTrain);
+    
+    //Prediction
+    
+    lstmOutput1 = lstmLayer1.forward(xTrain);
+    lstmOutput2 = lstmLayer2.forward(lstmOutput1);
+    std::vector<double> trainedPredictionsNorm = denseLayer.forward(lstmOutput2);
+    
+    lstmOutput1 = lstmLayer1.forward(xVerify);
+    lstmOutput2 = lstmLayer2.forward(lstmOutput1);
+    std::vector<double> verifiyPredictionsNorm = denseLayer.forward(lstmOutput2);
+    
+    std::vector<double> trainedPredictions = denormalize_data(trainedPredictionsNorm, mainStockPtr->getDoubleArray());
+    std::vector<double> verifiyPredictions = denormalize_data(verifiyPredictionsNorm, mainStockPtr->getDoubleArray());
+
+    //old predict
+    //std::vector<std::vector<double>> trainedPredictionsNorm = lstmLayer1.forward(xTrain);
+    //std::vector<std::vector<double>> verifiyPredictionsNorm = lstmLayer1.forward(xVerify);
+    //std::vector<double> trainedPredictions = denormalize_data(flatten_2d_vector(trainedPredictionsNorm), mainStockPtr->getDoubleArray());
+    //std::vector<double> verifiyPredictions = denormalize_data(flatten_2d_vector(verifiyPredictionsNorm), mainStockPtr->getDoubleArray());
 
     write_vector_to_file(trainedPredictions, "Trainedpredicitons.txt");
     write_vector_to_file(verifiyPredictions, "VerificationPredictions.txt");
+
+    std::string cmd;
+    if (argc < 2) {
+        cmd = "python graphing.py ";
+    }else{
+        cmd = "python graphing.py " + std::string(argv[1]);
+    }
+
+    std::cout << system(cmd.c_str()) << std::endl;
 
     
     std::cout << "DONE!!!!!!!!\n" << std::endl;

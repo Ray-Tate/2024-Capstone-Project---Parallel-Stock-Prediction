@@ -3,3 +3,4 @@ prototype/prototype.exe
 prototype/.vscode/settings.json
 prototype/.vscode/tasks.json
 prototype/prototype.exe
+*.exe

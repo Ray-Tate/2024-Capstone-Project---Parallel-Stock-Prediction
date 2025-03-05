@@ -1,3 +1,5 @@
+#include <iostream>
+#include <numeric>
 #include "CustomVectorFunctions.h"
 
 /*
@@ -115,7 +117,8 @@ public:
         }
         return forward_output;
     }
-    void backward(const std::vector<std::vector<double>>& errors, const std::vector<std::vector<double>>& inputs) {
+
+    std::vector<std::vector<double>> backward(const std::vector<std::vector<double>>& errors, const std::vector<std::vector<double>>& inputs) {
         std::vector<std::vector<double>> d_wf = zeroMatrix(wf.size(), wf[0].size());
         std::vector<std::vector<double>> d_wi = zeroMatrix(wi.size(), wi[0].size());
         std::vector<std::vector<double>> d_wc = zeroMatrix(wc.size(), wc[0].size());
@@ -131,8 +134,11 @@ public:
         std::vector<double> dh_next = zeroVector(hidden_states[0].size());
         std::vector<double> dc_next = zeroVector(cell_states[0].size());
         
+        std::vector<std::vector<double>> prev_layer_error;
+
         for (int q = inputs.size() - 1; q >= 0; --q) {
             std::vector<double> error = errors[q];
+            //Errors are y - h(x)
 
             // Final Gate Weights and Biases Errors
             d_wy = elementWiseAdd(d_wy, outerProduct(error, hidden_states[q]));
@@ -141,13 +147,11 @@ public:
             // Hidden State Error
             std::vector<double> d_hs = addVectors(dotMatrix(transpose(wy), error), dh_next);
 
-
             // Output Gate Weights and Biases Errors 
             std::vector<double> tanh_cs = tanh_vector(cell_states[q]);
             std::vector<double> d_o = elementWiseMultiply(elementWiseMultiply(tanh_cs, d_hs), sigmoid_vector(output_gates[q], true));
             d_wo = elementWiseAdd(d_wo, outerProduct(d_o, inputs[q]));
             d_bo = addVectors(d_bo, d_o);
-
             // Cell State Error
             std::vector<double> d_cs = addVectors(elementWiseMultiply(elementWiseMultiply(tanh_vector(tanh_vector(cell_states[q]), true),output_gates[q]),d_hs),dc_next);
 
@@ -155,7 +159,6 @@ public:
             std::vector<double> d_f = elementWiseMultiply(elementWiseMultiply(d_cs, cell_states[q - 1]),sigmoid_vector(forget_gates[q], true));
             d_wf = elementWiseAdd(d_wf, outerProduct(d_f, inputs[q]));
             d_bf = addVectors(d_bf, d_f);
-
             // Input Gate Weights and Biases Errors
             std::vector<double> d_i = elementWiseMultiply(elementWiseMultiply(d_cs, candidate_gates[q]),sigmoid_vector(input_gates[q], true));
             d_wi = elementWiseAdd(d_wi, outerProduct(d_i, inputs[q]));
@@ -165,13 +168,14 @@ public:
             std::vector<double> d_c = elementWiseMultiply(elementWiseMultiply(d_cs, input_gates[q]),tanh_vector(candidate_gates[q], true));
             d_wc = elementWiseAdd(d_wc, outerProduct(d_c, inputs[q]));
             d_bc = addVectors(d_bc, d_c);
-
             // Concatenated Input Error (Sum of Error at Each Gate!)
             std::vector<double> d_z = addVectors(addVectors(dotMatrix(transpose(wf), d_f),dotMatrix(transpose(wi), d_i)),addVectors(dotMatrix(transpose(wc), d_c),dotMatrix(transpose(wo), d_o)));
+            prev_layer_error.insert(prev_layer_error.begin(),{sumVector(d_z)});//Only single feature
 
             // Error of Hidden State and Cell State at Next Time Step
             dh_next = std::vector<double>(d_z.begin(), d_z.begin() + hidden_size);
             dc_next = elementWiseMultiply(forget_gates[q], d_cs);
+            
         }
 
         clip(d_wf); clip(d_wi); clip(d_wc); clip(d_wo); clip(d_wy);
@@ -188,6 +192,18 @@ public:
         bc = addVectors(bc, scaleVector(d_bc, learning_rate));
         bo = addVectors(bo, scaleVector(d_bo, learning_rate));
         by = addVectors(by, scaleVector(d_by, learning_rate));
+
+        return prev_layer_error;
+    }
+
+    
+
+    std::vector<std::vector<double>> getConcatInputs(){
+        std::vector<std::vector<double>> concat_inputs_martix;
+        for(auto input : concat_inputs){
+            concat_inputs_martix.push_back(input.second);
+        }
+        return concat_inputs_martix;
     }
 
     // Print the current states (for debugging)
@@ -212,19 +228,16 @@ public:
                   << wy[0][0] << ", " << by[0] << std::endl;
     }
 
+
     void train(const std::vector<std::vector<double>> xtrain, const std::vector<std::vector<double>> ytrain){
         int i,j,k;
         std::vector<std::vector<double>> preditions;
         std::vector<std::vector<double>> errors;
-        std::vector<std::vector<double>> concat_inputs_martix;
         std::vector<double> error_row;
         for(i=0;i<num_epochs;i++){
             preditions = forward(xtrain);
             errors.clear();
             for(j=0;j<preditions.size();j++){
-                //Likely not needed as it involves hot encoding
-                //errors.push_back(softmax_vector(scaleVector(preditions[j],-1)));
-                //errors[errors.size() -1][char_to_idx[ytrain[q]]]++; 
                 error_row.clear();
                 for(k=0;k<preditions[0].size();k++){
                     error_row.push_back(ytrain[j][k] - preditions[j][k]);
@@ -233,43 +246,45 @@ public:
             }
             std::cout << "Epoc: " << i+1 << " Error: " << absSum2DVector(errors) << std::endl;
             //Convert from map to matrix
-            concat_inputs_martix.clear();
-            for(auto input : concat_inputs){
-                concat_inputs_martix.push_back(input.second);
-            }
-            backward(errors,concat_inputs_martix);
+            
+            backward(errors,getConcatInputs());
+            
             printOrigins(i);
         }
     }
 
 
-    /*void test(std::vector<std::vector<double>> xtrain, std::vector<std::vector<double>> ytrain){
-        double accuracy = 0;
+    void test(const std::vector<std::vector<double>>& xtrain, const std::vector<std::vector<double>>& ytrain) {
         std::vector<std::vector<double>> probabilities = forward(xtrain);
+
+        double mse = 0.0, mae = 0.0;
+        size_t n = ytrain.size();
+        size_t m = ytrain[0].size();  
         
-        std::string output = "";
-        for (size_t q = 0; q < ytrain.size(); q++) {
-            std::vector<double> p = softmax_vector(probabilities[q]);
-            
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::discrete_distribution<> dist(p.begin(), p.end());
-
-            //int chosen_idx = dist(gen);
-            //char prediction = idx_to_char.at(chosen_idx); 
-
-            //output += prediction;
-            if (prediction == ytrain[q])
-                accuracy += 1
+        for (size_t i = 0; i < n; i++) {
+            for (size_t j = 0; j < m; j++) {
+                double error = probabilities[i][j] - ytrain[i][j];
+                mse += error * error;
+                mae += std::abs(error);
+            }
         }
+
+        mse /= (n * m);
+        mae /= (n * m);
+
+        // Display results
         std::cout << "Ground Truth:\n";
-        for (const std::vector<double>& row : ytrain) {
-            for (double val : row)
-                std::cout << val << " ";
+        for (const auto& row : ytrain) {
+            for (double label : row) std::cout << label << " ";
             std::cout << "\n";
         }
-        std::cout << "Predictions:\n" << output << "\n";
-        std::cout << "Accuracy: " << (accuracy * 100.0 / xtrain.size()) << "%";
+
+        std::cout << "\nPredictions:\n";
+        for (const auto& row : probabilities) {
+            for (double pred : row) std::cout << pred << " ";
+            std::cout << "\n";
         }
-    }*/
+
+        std::cout << "\nMean Squared Error: " << mse << "\nMean Absolute Error: " << mae << "\n";
+    }
 };
