@@ -1,0 +1,26 @@
+{
+    "START_DATE": "2013-06-01",
+    "END_DATE": "2018-01-01",
+    "STOCKS": [
+        "AAPL",
+        "GOOGL",
+        "META",
+        "AMZN",
+        "NFLX",
+        "XOM",
+        "HD",
+        "TD.TO",
+        "CM.TO",
+        "RY.TO",
+        "SPY"
+    ],
+    "STOCK_FOR_VALIDATION": "GOOGL",
+    "LSTM_PAST_DAYS_COUNT": 60,
+    "PREDICT_DAYS_AHEAD": 2,
+    "EPOCHS": 250,
+    "LEARNING_RATE": 0.0001,
+    "BATCH_SIZE": 32,
+    "TRAIN_SPLIT": 0.8,
+    "MOVING_AVERAGE": 30,
+    "LSTM_UNITS": 80
+}
