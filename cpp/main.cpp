@@ -288,6 +288,7 @@ int main() {
         lstmLayer2.printOrigins(i);
     }
 
+    
     //old train
     //lstmLayer1.train(xTrain, yTrain);
     
