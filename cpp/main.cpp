@@ -268,21 +268,21 @@ int main() {
     std::vector<double> loss_history;
     
     for(i=0;i<jsonConfig["EPOCHS"];i++){
-        lstmOutput1 = lstmLayer1.forward(xTrain);
-        lstmOutput2 = lstmLayer2.forward(dropoutLayer1.forward(lstmOutput1)); 
-        preditions = denseLayer.forward(dropoutLayer2.forward(lstmOutput2));
+        //lstmOutput1 = lstmLayer1.forward(xTrain);
+        lstmOutput2 = lstmLayer2.forward(xTrain); 
+        preditions = denseLayer.forward(lstmOutput2);
         errors.clear();
         for(j=0;j<preditions.size();j++){
             errors.push_back(yTrain[j][stock_for_validation_index] - preditions[j]);
         }
         loss_history.push_back(absSumVector(errors));
         std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
-        lstmOutputError2 = denseLayer.backward(errors,lstmOutput2,dropoutLayer2.ignore_mask);
+        lstmOutputError2 = denseLayer.backward(errors,lstmOutput2);
         lstmOutputError1 = lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs());
         //printMatrixDimensions(lstmOutputError1);
         //printMatrixDimensions(dropoutLayer1.ignore_mask);
         //printMatrixDimensions(lstmLayer1.getConcatInputs());
-        lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
+        //lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
         std::cout <<"Print origins" << std::endl;
         lstmLayer1.printOrigins(i);
         lstmLayer2.printOrigins(i);
@@ -293,12 +293,12 @@ int main() {
     
     //Prediction
     
-    lstmOutput1 = lstmLayer1.forward(xTrain);
-    lstmOutput2 = lstmLayer2.forward(lstmOutput1);
+    //lstmOutput1 = lstmLayer1.forward(xTrain);
+    lstmOutput2 = lstmLayer2.forward(xTrain);
     std::vector<double> trainedPredictionsNorm = denseLayer.forward(lstmOutput2);
     
-    lstmOutput1 = lstmLayer1.forward(xVerify);
-    lstmOutput2 = lstmLayer2.forward(lstmOutput1);
+    //lstmOutput1 = lstmLayer1.forward(xVerify);
+    lstmOutput2 = lstmLayer2.forward(xTrain);
     std::vector<double> verifiyPredictionsNorm = denseLayer.forward(lstmOutput2);
     
     std::vector<double> trainedPredictions = denormalize_data(trainedPredictionsNorm, mainStockPtr->getDoubleArray());
