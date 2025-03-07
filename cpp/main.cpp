@@ -273,10 +273,10 @@ int main() {
         preditions = denseLayer.forward(lstmOutput2);
         errors.clear();
         for(j=0;j<preditions.size();j++){
-            errors.push_back(yTrain[j][stock_for_validation_index] - preditions[j]);
+            errors.push_back(yTrain[j][0] - preditions[j]);
         }
         loss_history.push_back(absSumVector(errors));
-        std::cout << "Epoc: " << i+1 << " Error: " << loss_history[i] << std::endl;
+        std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
         lstmOutputError2 = denseLayer.backward(errors,lstmOutput2);
         lstmOutputError1 = lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs());
         //printMatrixDimensions(lstmOutputError1);
@@ -294,12 +294,12 @@ int main() {
     
     //Prediction
     
-    lstmOutput1 = lstmLayer1.forward(xTrain);
-    lstmOutput2 = lstmLayer2.forward(lstmOutput1);
+    //lstmOutput1 = lstmLayer1.forward(xTrain);
+    lstmOutput2 = lstmLayer2.forward(xTrain);
     std::vector<double> trainedPredictionsNorm = denseLayer.forward(lstmOutput2);
     
-    lstmOutput1 = lstmLayer1.forward(xVerify);
-    lstmOutput2 = lstmLayer2.forward(lstmOutput1);
+    //lstmOutput1 = lstmLayer1.forward(xVerify);
+    lstmOutput2 = lstmLayer2.forward(xVerify);
     std::vector<double> verifiyPredictionsNorm = denseLayer.forward(lstmOutput2);
     
     std::vector<double> trainedPredictions = denormalize_data(trainedPredictionsNorm, mainStockPtr->getDoubleArray());
