@@ -7,6 +7,12 @@
 #include <string>
 #include <cmath>
 #include <random>
+#include <omp.h>
+
+
+//#define USE_OPENMP
+
+
 //+++++ Helper Functions +++++
 
 
@@ -29,11 +35,10 @@ std::vector<std::vector<double>> initWeights(int input_size,int output_size){
 };
 
 std::vector<double> sigmoid_vector(std::vector<double> input, bool derivative = false){
-    std::vector<double> output = input;
+    std::vector<double> output(input.size());
     if(derivative){
         for(int i = 0;i<input.size();i++){
-            output[i
-] = input[i]*(1-input[i]);
+            output[i] = input[i]*(1-input[i]);
         }
         return output;
     }
@@ -44,15 +49,15 @@ std::vector<double> sigmoid_vector(std::vector<double> input, bool derivative = 
 };
 
 std::vector<std::vector<double>> sigmoid_matrix(std::vector<std::vector<double>> input, bool derivative = false){
-    std::vector<std::vector<double>> output = {};
+    std::vector<std::vector<double>> output(input.size(), std::vector<double>(input[0].size()));
     for(int i =0; i<input.size();i++){
-        output.push_back(sigmoid_vector(input[0],derivative));
+        output[i] = sigmoid_vector(input[i],derivative);
     }
     return output;
 };
 
 std::vector<double> tanh_vector(std::vector<double> input, bool derivative = false){
-    std::vector<double> output = input;
+    std::vector<double> output(input.size());
     if(derivative){
         for(int i = 0;i<input.size();i++){
             output[i] = 1-input[i]*input[i];
@@ -66,19 +71,19 @@ std::vector<double> tanh_vector(std::vector<double> input, bool derivative = fal
 };
 
 std::vector<std::vector<double>> tanh_matrix(std::vector<std::vector<double>> input, bool derivative = false){
-    std::vector<std::vector<double>> output = {};
+    std::vector<std::vector<double>> output(input.size(), std::vector<double>(input[0].size()));
     for(int i =0; i<input.size();i++){
-        output.push_back(tanh_vector(input[0],derivative));
+        output[i] = tanh_vector(input[i],derivative);
     }
     return output;
 }
 
 std::vector<double> softmax_vector(std::vector<double> input){
-    std::vector<double> output = input;
+    std::vector<double> output(input.size());
     double denominator = 0;
     for(int i = 0; i<input.size();i++){
-        denominator = denominator + exp(output[i]);
-        output[i] = exp(output[i]);
+        denominator = denominator + exp(input[i]);
+        output[i] = exp(input[i]);
     }
     for(int i = 0; i<input.size();i++){
         output[i] = output[i]/denominator;
@@ -88,12 +93,12 @@ std::vector<double> softmax_vector(std::vector<double> input){
 
 //Computes softmax using the entire array.
 std::vector<std::vector<double>> softmax_matrix(std::vector<std::vector<double>> input, bool derivative = false){
-    std::vector<std::vector<double>> output = input;
+    std::vector<std::vector<double>> output(input.size(), std::vector<double>(input[0].size()));
     double denominator = 0;
     for(int i =0; i<input.size();i++){
         for(int j=0;j<input[0].size();j++){
-            denominator = denominator + exp(output[i][j]);
-            output[i][j] = exp(output[i][j]);
+            denominator = denominator + exp(input[i][j]);
+            output[i][j] = exp(input[i][j]);
         }
     }
     for(int i =0; i<input.size();i++){
@@ -217,9 +222,12 @@ std::vector<double> dotMatrix(const std::vector<std::vector<double>>& A, const s
     }
 
     // Initialize result matrix with appropriate dimensions (rowsA x colsB)
-    std::vector<double> result = zeroVector(rowsA);
+    std::vector<double> result(rowsA, 0.0);
 
     // Perform matrix multiplication (dot product)
+    #ifdef USE_OPENMP
+    #pragma omp parallel for
+    #endif
     for (int i = 0; i < rowsA; ++i) {
         for (int k = 0; k < colsA; ++k) {
             result[i] += A[i][k] * B[k];
@@ -237,6 +245,9 @@ std::vector<double> elementWiseMultiply(const std::vector<double>& vec1, const s
 
     std::vector<double> result(vec1.size());
 
+    //#ifdef USE_OPENMP
+    //#pragma omp parallel for
+    //#endif
     for (size_t i = 0; i < vec1.size(); ++i) {
         result[i] = vec1[i] * vec2[i];
     }
@@ -252,6 +263,9 @@ std::vector<double> elementWiseAdd(const std::vector<double>& vec1, const std::v
 
     std::vector<double> result(vec1.size());
 
+    //#ifdef USE_OPENMP
+    //#pragma omp parallel for
+    //#endif
     for (size_t i = 0; i < vec1.size(); ++i) {
         result[i] = vec1[i] + vec2[i];
     }

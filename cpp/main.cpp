@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <chrono>
 #include "json.hpp"
 #include "LSTM_cell.h"
 #include "layers.hpp"
@@ -184,15 +185,27 @@ public:
 int StockData::arrayLength = 0;
 
 
-int main() {
-    nlohmann::json jsonConfig = getConfig();
+int main(int argc, char* argv[]) {
+
+    nlohmann::json jsonConfig;
+    
+    //Use command line argument for config if given.
+    if(argc == 2){
+        jsonConfig = getConfig(argv[1]);
+    }else{
+        jsonConfig = getConfig();
+    }
+
     std::string stock_for_validation = jsonConfig["STOCK_FOR_VALIDATION"];
     int stock_for_validation_index;
     //Read the config for which stocks to use and read in the respective data text files
     std::vector<StockData> allStockData;
     int i =0;
     for(std::string stock : jsonConfig["STOCKS"]){
-        stock = jsonConfig["STOCK_FOR_VALIDATION"];
+<<<<<<< HEAD
+=======
+        //stock = jsonConfig["STOCK_FOR_VALIDATION"];
+>>>>>>> 4939f928c67da51dbdb7924fbdac4ec75f945310
         StockData tmp(stock, file2arr("InputData/"+stock+".txt"));
         allStockData.push_back(tmp);
         if(stock == stock_for_validation){
@@ -225,40 +238,93 @@ int main() {
 
     //Get training portions of data.
     std::vector<std::vector<double>> xTrain;
+<<<<<<< HEAD
     std::vector<double> tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
     xTrain.resize(tmp.size());
-    for(int i = 0; i<tmp.size() ; i++){
-        xTrain[i].push_back(tmp[i]);
+    for(StockData& element : allStockData){
+        if(jsonConfig["TRAIN_ON_VALIDATION_ONLY"] == 1 && element.getName() != jsonConfig["STOCK_FOR_VALIDATION"]){
+            continue;
+        }
+        tmp = getFirst(element.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+        for(int i = 0; i<tmp.size() ; i++){
+            xTrain[i].push_back(tmp[i]);
+        }
+=======
+    //std::vector<double> tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+    //xTrain.resize(tmp.size());
+    std::vector<std::vector<double>> tmp;
+    for(StockData& stock : allStockData){
+        tmp.push_back(getFirst(stock.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]));
+>>>>>>> 4939f928c67da51dbdb7924fbdac4ec75f945310
     }
+    xTrain.resize(tmp[0].size());
+    std::vector<double> row;
+    
+    for(int i = 0; i<tmp[0].size() ; i++){
+        row.clear();
+        for(int j = 0; j<tmp.size();j++){
+            row.push_back(tmp[j][i]);
+        }
+        xTrain[i] = row;
+    }
+    
+    
     std::cout << xTrain.size() << " THATS HOW BIG Xtrain is" << std::endl;
 
     std::vector<std::vector<double>> yTrain;
-    tmp = getFirst(target_Y.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
-    yTrain.resize(tmp.size());
-    for(int i = 0; i<tmp.size() ; i++){
-        yTrain[i].push_back(tmp[i]);
+    std::vector<double> tmp2; 
+    tmp2 = getFirst(target_Y.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+    yTrain.resize(tmp2.size());
+    for(int i = 0; i<tmp2.size() ; i++){
+        yTrain[i].push_back(tmp2[i]);
     }
 
     std::cout << yTrain.size() << " THATS HOW BIG Ytrain is" << std::endl;
 
     std::vector<std::vector<double>> xVerify;
+<<<<<<< HEAD
     tmp = getLast(mainStockPtr->getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]);
     xVerify.resize(tmp.size());
-    for(int i = 0; i<tmp.size() ; i++){
-        xVerify[i].push_back(tmp[i]);
+    for(StockData& element : allStockData){
+        if(jsonConfig["TRAIN_ON_VALIDATION_ONLY"] == 1 && element.getName() != jsonConfig["STOCK_FOR_VALIDATION"]){
+            continue;
+        }
+        tmp = getLast(element.getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]);
+        for(int i = 0; i<tmp.size() ; i++){
+            xVerify[i].push_back(tmp[i]);
+        }
+=======
+    /*tmp2 = getLast(mainStockPtr->getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]);
+    xVerify.resize(tmp2.size());
+    for(int i = 0; i<tmp2.size() ; i++){
+        xVerify[i].push_back(tmp2[i]);
+    }*/
+    tmp.clear();
+    for(StockData& stock : allStockData){
+        tmp.push_back(getFirst(stock.getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]));
+    }
+    xVerify.resize(tmp[0].size());
+    
+    for(int i = 0; i<tmp[0].size() ; i++){
+        row.clear();
+        for(int j = 0; j<tmp.size();j++){
+            row.push_back(tmp[j][i]);
+        }
+        xVerify[i] = row;
+>>>>>>> 4939f928c67da51dbdb7924fbdac4ec75f945310
     }
     std::cout << xVerify.size() << " THATS HOW BIG Xverify is" << std::endl;
 
     int hidden_size = jsonConfig["LSTM_UNITS"];
-    LSTM lstmLayer1(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
-    Dropout dropoutLayer1(0.2);
+    //LSTM lstmLayer1(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
+    //Dropout dropoutLayer1(0);
     LSTM lstmLayer2(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
-    Dropout dropoutLayer2(0.2);
+    Dropout dropoutLayer2(0);
     Dense denseLayer(jsonConfig["LEARNING_RATE"],xTrain[0].size());
     
     //Training
 
-    int j;
+    int j,k;
     std::vector<std::vector<double>> lstmOutput1;
     std::vector<std::vector<double>> lstmOutputError1;
     std::vector<std::vector<double>> lstmOutput2;
@@ -266,39 +332,105 @@ int main() {
     std::vector<double> preditions;
     std::vector<double> errors;
     std::vector<double> loss_history;
+<<<<<<< HEAD
+
+
+    double minError = INT64_MAX;
+    int epochsWithoutImprovement = 0;
+    double averageEpocTime = 0;
+=======
+    double bestLoss = 1000000;
+    LSTM bestLSTM = lstmLayer2;
+    Dense bestDense = denseLayer;
+>>>>>>> 4939f928c67da51dbdb7924fbdac4ec75f945310
     
+    k =0;
     for(i=0;i<jsonConfig["EPOCHS"];i++){
+        // Start timing
+        auto start = std::chrono::high_resolution_clock::now();
+
         //lstmOutput1 = lstmLayer1.forward(xTrain);
         lstmOutput2 = lstmLayer2.forward(xTrain); 
         preditions = denseLayer.forward(lstmOutput2);
         errors.clear();
         for(j=0;j<preditions.size();j++){
-            errors.push_back(yTrain[j][stock_for_validation_index] - preditions[j]);
+<<<<<<< HEAD
+            errors.push_back((200.0/preditions.size()) * (yTrain[j][0] - preditions[j]));
+        }
+        double totalError = absSumVector(errors);
+        loss_history.push_back(totalError);
+        std::cout << "Epoc: " << i+1 << " Error: " << totalError << std::endl;
+=======
+            errors.push_back(yTrain[j][0] - preditions[j]);
         }
         loss_history.push_back(absSumVector(errors));
-        std::cout << "Epoc: " << i+1 << " Error: " << loss_history[i] << std::endl;
+        std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
+        
+        if(bestLoss > loss_history[i]){
+            k = 0;
+            std::cout << "bestloss: " << loss_history[i] << std::endl;
+            bestLoss = loss_history[i];
+            bestLSTM = lstmLayer2;
+            bestDense = denseLayer;
+        }else if(k+1 > jsonConfig["PATIENCE"]){
+            std::cout << "Loss has not improved in " << jsonConfig["PATIENCE"] <<" epochs, reverting to best epoch" << std::endl;
+            lstmLayer2 = bestLSTM;
+            denseLayer = bestDense;
+            break;
+        }else{
+            k++;
+        }
+>>>>>>> 4939f928c67da51dbdb7924fbdac4ec75f945310
         lstmOutputError2 = denseLayer.backward(errors,lstmOutput2);
         lstmOutputError1 = lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs());
+        //lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
+
         //printMatrixDimensions(lstmOutputError1);
         //printMatrixDimensions(dropoutLayer1.ignore_mask);
         //printMatrixDimensions(lstmLayer1.getConcatInputs());
-        //lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
+        
         std::cout <<"Print origins" << std::endl;
         //lstmLayer1.printOrigins(i);
         lstmLayer2.printOrigins(i);
-    }
 
+        //Check for impovment
+        std::cout << "Rounds without improvement = " << epochsWithoutImprovement << std::endl;
+        if(minError > totalError){
+            minError = totalError;
+            epochsWithoutImprovement = 0;
+        }else{
+            epochsWithoutImprovement++;
+        }
+
+        //Exit if there hasn't been improvement recently
+        if(epochsWithoutImprovement == jsonConfig["EARLY_STOPPING"]){
+            std::cout << "Stopping epoch training early, there hasn't been improvment after '" << jsonConfig["EARLY_STOPPING"] << "' epochs." << std::endl;
+            break;
+        }
+
+        // Stop timing
+        auto end = std::chrono::high_resolution_clock::now();
+
+        // Calculate the duration in seconds as a double
+        std::chrono::duration<double> duration = end - start;
+
+        // Calculate average time
+        averageEpocTime = (averageEpocTime * i + duration.count()) / (i + 1);
+        std::cout << "Average epoch time taken: " << averageEpocTime << " microseconds" << std::endl;
+    }
+    loss_history = scaleVector(loss_history,1.0/loss_history.size()); // Covert to MAE
+    
     //old train
     //lstmLayer1.train(xTrain, yTrain);
     
     //Prediction
     
-    lstmOutput1 = lstmLayer1.forward(xTrain);
-    lstmOutput2 = lstmLayer2.forward(lstmOutput1);
+    //lstmOutput1 = lstmLayer1.forward(xTrain);
+    lstmOutput2 = lstmLayer2.forward(xTrain);
     std::vector<double> trainedPredictionsNorm = denseLayer.forward(lstmOutput2);
     
-    lstmOutput1 = lstmLayer1.forward(xVerify);
-    lstmOutput2 = lstmLayer2.forward(lstmOutput1);
+    //lstmOutput1 = lstmLayer1.forward(xVerify);
+    lstmOutput2 = lstmLayer2.forward(xVerify);
     std::vector<double> verifiyPredictionsNorm = denseLayer.forward(lstmOutput2);
     
     std::vector<double> trainedPredictions = denormalize_data(trainedPredictionsNorm, mainStockPtr->getDoubleArray());
@@ -313,14 +445,14 @@ int main() {
     write_vector_to_file(trainedPredictions, "Trainedpredicitons.txt");
     write_vector_to_file(verifiyPredictions, "VerificationPredictions.txt");
 
-    /*std::string cmd;
+    std::string cmd;
     if (argc < 2) {
         cmd = "python graphing.py ";
     }else{
         cmd = "python graphing.py " + std::string(argv[1]);
     }
 
-    std::cout << system(cmd.c_str()) << std::endl;*/
+    std::cout << system(cmd.c_str()) << std::endl;
 
     
     std::cout << "DONE!!!!!!!!\n" << std::endl;
