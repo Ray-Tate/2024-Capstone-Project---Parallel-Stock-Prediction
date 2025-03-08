@@ -257,11 +257,6 @@ int main(int argc, char* argv[]) {
     yTrain.resize(tmp2.size());
     for(int i = 0; i<tmp2.size() ; i++){
         yTrain[i].push_back(tmp2[i]);
-    std::vector<double> tmp2; 
-    tmp2 = getFirst(target_Y.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
-    yTrain.resize(tmp2.size());
-    for(int i = 0; i<tmp2.size() ; i++){
-        yTrain[i].push_back(tmp2[i]);
     }
 
     std::cout << yTrain.size() << " THATS HOW BIG Ytrain is" << std::endl;
@@ -289,7 +284,6 @@ int main(int argc, char* argv[]) {
     
     //Training
 
-    int j,k;
     int j,k;
     std::vector<std::vector<double>> lstmOutput1;
     std::vector<std::vector<double>> lstmOutputError1;
