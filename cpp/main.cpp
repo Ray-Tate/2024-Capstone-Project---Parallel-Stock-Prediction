@@ -192,7 +192,7 @@ int main() {
     std::vector<StockData> allStockData;
     int i =0;
     for(std::string stock : jsonConfig["STOCKS"]){
-        stock = jsonConfig["STOCK_FOR_VALIDATION"];
+        //stock = jsonConfig["STOCK_FOR_VALIDATION"];
         StockData tmp(stock, file2arr("InputData/"+stock+".txt"));
         allStockData.push_back(tmp);
         if(stock == stock_for_validation){
@@ -225,27 +225,54 @@ int main() {
 
     //Get training portions of data.
     std::vector<std::vector<double>> xTrain;
-    std::vector<double> tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
-    xTrain.resize(tmp.size());
-    for(int i = 0; i<tmp.size() ; i++){
-        xTrain[i].push_back(tmp[i]);
+    //std::vector<double> tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+    //xTrain.resize(tmp.size());
+    std::vector<std::vector<double>> tmp;
+    for(StockData& stock : allStockData){
+        tmp.push_back(getFirst(stock.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]));
     }
+    xTrain.resize(tmp[0].size());
+    std::vector<double> row;
+    
+    for(int i = 0; i<tmp[0].size() ; i++){
+        row.clear();
+        for(int j = 0; j<tmp.size();j++){
+            row.push_back(tmp[j][i]);
+        }
+        xTrain[i] = row;
+    }
+    
+    
     std::cout << xTrain.size() << " THATS HOW BIG Xtrain is" << std::endl;
 
     std::vector<std::vector<double>> yTrain;
-    tmp = getFirst(target_Y.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
-    yTrain.resize(tmp.size());
-    for(int i = 0; i<tmp.size() ; i++){
-        yTrain[i].push_back(tmp[i]);
+    std::vector<double> tmp2; 
+    tmp2 = getFirst(target_Y.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+    yTrain.resize(tmp2.size());
+    for(int i = 0; i<tmp2.size() ; i++){
+        yTrain[i].push_back(tmp2[i]);
     }
 
     std::cout << yTrain.size() << " THATS HOW BIG Ytrain is" << std::endl;
 
     std::vector<std::vector<double>> xVerify;
-    tmp = getLast(mainStockPtr->getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]);
-    xVerify.resize(tmp.size());
-    for(int i = 0; i<tmp.size() ; i++){
-        xVerify[i].push_back(tmp[i]);
+    /*tmp2 = getLast(mainStockPtr->getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]);
+    xVerify.resize(tmp2.size());
+    for(int i = 0; i<tmp2.size() ; i++){
+        xVerify[i].push_back(tmp2[i]);
+    }*/
+    tmp.clear();
+    for(StockData& stock : allStockData){
+        tmp.push_back(getFirst(stock.getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]));
+    }
+    xVerify.resize(tmp[0].size());
+    
+    for(int i = 0; i<tmp[0].size() ; i++){
+        row.clear();
+        for(int j = 0; j<tmp.size();j++){
+            row.push_back(tmp[j][i]);
+        }
+        xVerify[i] = row;
     }
     std::cout << xVerify.size() << " THATS HOW BIG Xverify is" << std::endl;
 
@@ -258,7 +285,7 @@ int main() {
     
     //Training
 
-    int j;
+    int j,k;
     std::vector<std::vector<double>> lstmOutput1;
     std::vector<std::vector<double>> lstmOutputError1;
     std::vector<std::vector<double>> lstmOutput2;
@@ -266,7 +293,11 @@ int main() {
     std::vector<double> preditions;
     std::vector<double> errors;
     std::vector<double> loss_history;
+    double bestLoss = 1000000;
+    LSTM bestLSTM = lstmLayer2;
+    Dense bestDense = denseLayer;
     
+    k =0;
     for(i=0;i<jsonConfig["EPOCHS"];i++){
         //lstmOutput1 = lstmLayer1.forward(xTrain);
         lstmOutput2 = lstmLayer2.forward(xTrain); 
@@ -277,6 +308,21 @@ int main() {
         }
         loss_history.push_back(absSumVector(errors));
         std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
+        
+        if(bestLoss > loss_history[i]){
+            k = 0;
+            std::cout << "bestloss: " << loss_history[i] << std::endl;
+            bestLoss = loss_history[i];
+            bestLSTM = lstmLayer2;
+            bestDense = denseLayer;
+        }else if(k+1 > jsonConfig["PATIENCE"]){
+            std::cout << "Loss has not improved in " << jsonConfig["PATIENCE"] <<" epochs, reverting to best epoch" << std::endl;
+            lstmLayer2 = bestLSTM;
+            denseLayer = bestDense;
+            break;
+        }else{
+            k++;
+        }
         lstmOutputError2 = denseLayer.backward(errors,lstmOutput2);
         lstmOutputError1 = lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs());
         //printMatrixDimensions(lstmOutputError1);
@@ -287,7 +333,7 @@ int main() {
         //lstmLayer1.printOrigins(i);
         lstmLayer2.printOrigins(i);
     }
-
+    loss_history = scaleVector(loss_history,1.0/loss_history.size()); // Covert to MAE
     
     //old train
     //lstmLayer1.train(xTrain, yTrain);
