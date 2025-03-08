@@ -203,6 +203,7 @@ int main(int argc, char* argv[]) {
     int i =0;
     for(std::string stock : jsonConfig["STOCKS"]){
         //stock = jsonConfig["STOCK_FOR_VALIDATION"];
+        //stock = jsonConfig["STOCK_FOR_VALIDATION"];
         StockData tmp(stock, file2arr("InputData/"+stock+".txt"));
         allStockData.push_back(tmp);
         if(stock == stock_for_validation){
@@ -256,6 +257,11 @@ int main(int argc, char* argv[]) {
     yTrain.resize(tmp2.size());
     for(int i = 0; i<tmp2.size() ; i++){
         yTrain[i].push_back(tmp2[i]);
+    std::vector<double> tmp2; 
+    tmp2 = getFirst(target_Y.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
+    yTrain.resize(tmp2.size());
+    for(int i = 0; i<tmp2.size() ; i++){
+        yTrain[i].push_back(tmp2[i]);
     }
 
     std::cout << yTrain.size() << " THATS HOW BIG Ytrain is" << std::endl;
@@ -283,6 +289,7 @@ int main(int argc, char* argv[]) {
     
     //Training
 
+    int j,k;
     int j,k;
     std::vector<std::vector<double>> lstmOutput1;
     std::vector<std::vector<double>> lstmOutputError1;
@@ -361,8 +368,12 @@ int main(int argc, char* argv[]) {
     
     //lstmOutput1 = lstmLayer1.forward(xTrain);
     lstmOutput2 = lstmLayer2.forward(xTrain);
+    //lstmOutput1 = lstmLayer1.forward(xTrain);
+    lstmOutput2 = lstmLayer2.forward(xTrain);
     std::vector<double> trainedPredictionsNorm = denseLayer.forward(lstmOutput2);
     
+    //lstmOutput1 = lstmLayer1.forward(xVerify);
+    lstmOutput2 = lstmLayer2.forward(xVerify);
     //lstmOutput1 = lstmLayer1.forward(xVerify);
     lstmOutput2 = lstmLayer2.forward(xVerify);
     std::vector<double> verifiyPredictionsNorm = denseLayer.forward(lstmOutput2);
