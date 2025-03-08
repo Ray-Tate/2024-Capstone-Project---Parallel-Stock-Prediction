@@ -202,10 +202,7 @@ int main(int argc, char* argv[]) {
     std::vector<StockData> allStockData;
     int i =0;
     for(std::string stock : jsonConfig["STOCKS"]){
-<<<<<<< HEAD
-=======
         //stock = jsonConfig["STOCK_FOR_VALIDATION"];
->>>>>>> 4939f928c67da51dbdb7924fbdac4ec75f945310
         StockData tmp(stock, file2arr("InputData/"+stock+".txt"));
         allStockData.push_back(tmp);
         if(stock == stock_for_validation){
@@ -236,9 +233,8 @@ int main(int argc, char* argv[]) {
     target_Y.printStockData();
 
 
-    //Get training portions of data.
+        //Get training portions of data.
     std::vector<std::vector<double>> xTrain;
-<<<<<<< HEAD
     std::vector<double> tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
     xTrain.resize(tmp.size());
     for(StockData& element : allStockData){
@@ -249,23 +245,6 @@ int main(int argc, char* argv[]) {
         for(int i = 0; i<tmp.size() ; i++){
             xTrain[i].push_back(tmp[i]);
         }
-=======
-    //std::vector<double> tmp = getFirst(mainStockPtr->getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]);
-    //xTrain.resize(tmp.size());
-    std::vector<std::vector<double>> tmp;
-    for(StockData& stock : allStockData){
-        tmp.push_back(getFirst(stock.getDoubleArrayNormalized(),jsonConfig["TRAIN_SPLIT"]));
->>>>>>> 4939f928c67da51dbdb7924fbdac4ec75f945310
-    }
-    xTrain.resize(tmp[0].size());
-    std::vector<double> row;
-    
-    for(int i = 0; i<tmp[0].size() ; i++){
-        row.clear();
-        for(int j = 0; j<tmp.size();j++){
-            row.push_back(tmp[j][i]);
-        }
-        xTrain[i] = row;
     }
     
     
@@ -282,7 +261,6 @@ int main(int argc, char* argv[]) {
     std::cout << yTrain.size() << " THATS HOW BIG Ytrain is" << std::endl;
 
     std::vector<std::vector<double>> xVerify;
-<<<<<<< HEAD
     tmp = getLast(mainStockPtr->getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]);
     xVerify.resize(tmp.size());
     for(StockData& element : allStockData){
@@ -293,25 +271,6 @@ int main(int argc, char* argv[]) {
         for(int i = 0; i<tmp.size() ; i++){
             xVerify[i].push_back(tmp[i]);
         }
-=======
-    /*tmp2 = getLast(mainStockPtr->getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]);
-    xVerify.resize(tmp2.size());
-    for(int i = 0; i<tmp2.size() ; i++){
-        xVerify[i].push_back(tmp2[i]);
-    }*/
-    tmp.clear();
-    for(StockData& stock : allStockData){
-        tmp.push_back(getFirst(stock.getDoubleArrayNormalized(), 1.1 - (double)jsonConfig["TRAIN_SPLIT"]));
-    }
-    xVerify.resize(tmp[0].size());
-    
-    for(int i = 0; i<tmp[0].size() ; i++){
-        row.clear();
-        for(int j = 0; j<tmp.size();j++){
-            row.push_back(tmp[j][i]);
-        }
-        xVerify[i] = row;
->>>>>>> 4939f928c67da51dbdb7924fbdac4ec75f945310
     }
     std::cout << xVerify.size() << " THATS HOW BIG Xverify is" << std::endl;
 
@@ -332,17 +291,14 @@ int main(int argc, char* argv[]) {
     std::vector<double> preditions;
     std::vector<double> errors;
     std::vector<double> loss_history;
-<<<<<<< HEAD
 
 
     double minError = INT64_MAX;
     int epochsWithoutImprovement = 0;
     double averageEpocTime = 0;
-=======
     double bestLoss = 1000000;
     LSTM bestLSTM = lstmLayer2;
     Dense bestDense = denseLayer;
->>>>>>> 4939f928c67da51dbdb7924fbdac4ec75f945310
     
     k =0;
     for(i=0;i<jsonConfig["EPOCHS"];i++){
@@ -354,18 +310,12 @@ int main(int argc, char* argv[]) {
         preditions = denseLayer.forward(lstmOutput2);
         errors.clear();
         for(j=0;j<preditions.size();j++){
-<<<<<<< HEAD
             errors.push_back((200.0/preditions.size()) * (yTrain[j][0] - preditions[j]));
         }
         double totalError = absSumVector(errors);
         loss_history.push_back(totalError);
         std::cout << "Epoc: " << i+1 << " Error: " << totalError << std::endl;
-=======
-            errors.push_back(yTrain[j][0] - preditions[j]);
-        }
-        loss_history.push_back(absSumVector(errors));
-        std::cout << "Epoc: " << i+1 << " Error: " << absSumVector(errors) << std::endl;
-        
+
         if(bestLoss > loss_history[i]){
             k = 0;
             std::cout << "bestloss: " << loss_history[i] << std::endl;
@@ -380,7 +330,6 @@ int main(int argc, char* argv[]) {
         }else{
             k++;
         }
->>>>>>> 4939f928c67da51dbdb7924fbdac4ec75f945310
         lstmOutputError2 = denseLayer.backward(errors,lstmOutput2);
         lstmOutputError1 = lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs());
         //lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
@@ -393,21 +342,6 @@ int main(int argc, char* argv[]) {
         //lstmLayer1.printOrigins(i);
         lstmLayer2.printOrigins(i);
 
-        //Check for impovment
-        std::cout << "Rounds without improvement = " << epochsWithoutImprovement << std::endl;
-        if(minError > totalError){
-            minError = totalError;
-            epochsWithoutImprovement = 0;
-        }else{
-            epochsWithoutImprovement++;
-        }
-
-        //Exit if there hasn't been improvement recently
-        if(epochsWithoutImprovement == jsonConfig["EARLY_STOPPING"]){
-            std::cout << "Stopping epoch training early, there hasn't been improvment after '" << jsonConfig["EARLY_STOPPING"] << "' epochs." << std::endl;
-            break;
-        }
-
         // Stop timing
         auto end = std::chrono::high_resolution_clock::now();
 
@@ -416,7 +350,7 @@ int main(int argc, char* argv[]) {
 
         // Calculate average time
         averageEpocTime = (averageEpocTime * i + duration.count()) / (i + 1);
-        std::cout << "Average epoch time taken: " << averageEpocTime << " microseconds" << std::endl;
+        std::cout << "Average epoch time taken: " << averageEpocTime << " seconds" << std::endl;
     }
     loss_history = scaleVector(loss_history,1.0/loss_history.size()); // Covert to MAE
     
