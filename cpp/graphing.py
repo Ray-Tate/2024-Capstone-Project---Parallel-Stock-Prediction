@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import numpy as np
+import datetime
 
 import os
 
@@ -68,4 +69,9 @@ plt.xlabel('Date')
 plt.ylabel('Price')
 plt.legend()
 plt.grid(True)
-plt.savefig(f"{config['STOCK_FOR_VALIDATION']}Output.png", dpi=300)
+
+# Generate timestamp
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+# Add timestamp to the output filename
+plt.savefig(f"{config['STOCK_FOR_VALIDATION']}Output_{timestamp}.png", dpi=300)
