@@ -77,7 +77,7 @@ std::vector<double> moving_average(std::vector<double> doubleArray, int windowSi
     double moving_total = 0;
     double denominator = 0;
     for (int i = 0; i < int(doubleArray.size()); i++) {
-        moving_total += doubleArrayMA[i];
+        moving_total += doubleArray[i];
         denominator += 1;
         if (i > windowSize) {
             moving_total -= doubleArrayMA[i - windowSize];
@@ -122,9 +122,9 @@ private:
 
 public:
     // Constructor
-    StockData(const std::string name, const std::vector<double>& doubleArray){
+    StockData(const std::string name, const std::vector<double>& doubleArray, int movingAverage){
         StockData::name = name;
-        StockData::doubleArray = doubleArray;
+        StockData::doubleArray = moving_average(doubleArray, movingAverage);
         StockData::doubleArrayNormalized = normalize_data(doubleArray);
         if (arrayLength == 0) {
             arrayLength = doubleArray.size();
@@ -204,7 +204,7 @@ int main(int argc, char* argv[]) {
     for(std::string stock : jsonConfig["STOCKS"]){
         //stock = jsonConfig["STOCK_FOR_VALIDATION"];
         //stock = jsonConfig["STOCK_FOR_VALIDATION"];
-        StockData tmp(stock, file2arr("InputData/"+stock+".txt"));
+        StockData tmp(stock, file2arr("InputData/"+stock+".txt"), jsonConfig["MOVING_AVERAGE"]);
         allStockData.push_back(tmp);
         if(stock == stock_for_validation){
             stock_for_validation_index = i;
@@ -219,7 +219,7 @@ int main(int argc, char* argv[]) {
             mainStockPtr = &stock;
         }
     }
-    StockData target_Y(mainStockPtr->getName(), mainStockPtr->getDoubleArray()); //Create a copy of the main stock for Y
+    StockData target_Y(mainStockPtr->getName(), mainStockPtr->getDoubleArray(), 1); //Create a copy of the main stock for Y
     
     //Resize X and Y (remove beggining from Y cuz no history to predict. Remove end of X to match X/Y lengths)
     target_Y.removeDataFromBeginnnig(jsonConfig["PREDICT_DAYS_AHEAD"]);
@@ -275,6 +275,11 @@ int main(int argc, char* argv[]) {
     }
     std::cout << xVerify.size() << " THATS HOW BIG Xverify is" << std::endl;
 
+    //Incase initialization is very bad, restart.
+    int restartCount = 0;
+    StartAI:
+    restartCount++;
+
     int hidden_size = jsonConfig["LSTM_UNITS"];
     //LSTM lstmLayer1(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
     //Dropout dropoutLayer1(0);
@@ -311,9 +316,12 @@ int main(int argc, char* argv[]) {
         preditions = denseLayer.forward(lstmOutput2);
         errors.clear();
         for(j=0;j<preditions.size();j++){
-            errors.push_back((200.0/preditions.size()) * (yTrain[j][0] - preditions[j]));
+            errors.push_back((yTrain[j][0] - preditions[j]));
         }
         double totalError = absSumVector(errors);
+        if(totalError > 300 && restartCount < 10){
+            goto StartAI;
+        }
         loss_history.push_back(totalError);
         std::cout << "Epoc: " << i+1 << " Error: " << totalError << std::endl;
 
@@ -383,6 +391,7 @@ int main(int argc, char* argv[]) {
 
     write_vector_to_file(trainedPredictions, "Trainedpredicitons.txt");
     write_vector_to_file(verifiyPredictions, "VerificationPredictions.txt");
+    write_vector_to_file(loss_history, "LossHistory.txt");
 
     std::string cmd;
     if (argc < 2) {

@@ -4,3 +4,4 @@ prototype/.vscode/settings.json
 prototype/.vscode/tasks.json
 prototype/prototype.exe
 *.exe
+cpp/Output_Graphs/*.png

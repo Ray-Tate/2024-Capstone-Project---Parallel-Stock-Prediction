@@ -4,9 +4,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import numpy as np
 import datetime
-
 import os
-
 import sys
 
 # Check if an argument is provided
@@ -31,6 +29,10 @@ start_date = config['START_DATE']
 end_date = config['END_DATE']
 stocks = config['STOCKS']
 
+# Ensure the output directory exists
+output_folder = "Output_Graphs"
+os.makedirs(output_folder, exist_ok=True)
+
 # Plot each stock's data
 plt.figure(figsize=(14, 8))
 
@@ -51,20 +53,21 @@ with open(trainedtxt, 'r') as f:
 with open(veriftxt, 'r') as f:
     verif_data = [float(line.strip()) for line in f.readlines()]
 
+# Remove first 10 elements from train_data and verif_data
+removeFirstElements = 10
+train_data = train_data[removeFirstElements:]
+verif_data = verif_data[removeFirstElements:]
 
 # Plot the stock data
 count_array = np.arange(1, len(stock_data) + 1)
-plt.plot(count_array,stock_data, label=maintxt)
-count_array = np.arange(1, len(train_data) + 1)
-plt.plot(train_data,  label="Training Set")
-count_array = np.arange(len(stock_data) - len(verif_data), len(stock_data))
+plt.plot(count_array, stock_data, label=maintxt)
+count_array = np.arange(1 + removeFirstElements, len(train_data) + 1 + removeFirstElements)
+plt.plot(count_array, train_data, label="Training Set")
+count_array = np.arange(len(stock_data) - len(verif_data) + removeFirstElements, len(stock_data) + removeFirstElements)
 plt.plot(count_array, verif_data, label="Validation Set")
 
-
-
-
 # Add labels and legend
-plt.title(f'Rolling Stock Prediction Over Time ({config['PREDICT_DAYS_AHEAD']} days ahead)')
+plt.title(f"{config['STOCK_FOR_VALIDATION']} Rolling Stock Prediction Over Time ({config['PREDICT_DAYS_AHEAD']} days ahead)")
 plt.xlabel('Date')
 plt.ylabel('Price')
 plt.legend()
@@ -73,5 +76,29 @@ plt.grid(True)
 # Generate timestamp
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Add timestamp to the output filename
-plt.savefig(f"{config['STOCK_FOR_VALIDATION']}Output_{timestamp}.png", dpi=300)
+# Save the stock prediction graph
+plt.savefig(f"{output_folder}/{config['STOCK_FOR_VALIDATION']}Output_{timestamp}.png", dpi=300)
+
+# Plot loss history
+plt.figure(figsize=(14, 8))
+
+losstxt = "LossHistory.txt"
+
+if os.path.exists(losstxt):
+    with open(losstxt, 'r') as f:
+        loss_data = [float(line.strip()) for line in f.readlines()]
+
+    # Plot the loss data
+    plt.plot(np.arange(1, len(loss_data) + 1), loss_data, label="Loss History")
+
+    # Add labels and legend
+    plt.title(f"{config['STOCK_FOR_VALIDATION']} Model Loss Over Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.grid(True)
+
+    # Save the loss graph
+    plt.savefig(f"{output_folder}/{config['STOCK_FOR_VALIDATION']}Loss_{timestamp}.png", dpi=300)
+
+print("Graphs saved successfully.")
