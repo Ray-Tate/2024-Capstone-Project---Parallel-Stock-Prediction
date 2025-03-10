@@ -21,7 +21,7 @@
     "LEARNING_RATE": 0.00005,
     "BATCH_SIZE": 32,
     "TRAIN_SPLIT": 0.8,
-    "MOVING_AVERAGE": 30,
+    "MOVING_AVERAGE": 1,
     "LSTM_UNITS": 80,
     "PATIENCE": 100
 }
