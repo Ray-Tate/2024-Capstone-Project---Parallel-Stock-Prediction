@@ -197,19 +197,14 @@ int main(int argc, char* argv[]) {
     }
 
     std::string stock_for_validation = jsonConfig["STOCK_FOR_VALIDATION"];
-    int stock_for_validation_index;
     //Read the config for which stocks to use and read in the respective data text files
     std::vector<StockData> allStockData;
-    int i =0;
+    
     for(std::string stock : jsonConfig["STOCKS"]){
         //stock = jsonConfig["STOCK_FOR_VALIDATION"];
         //stock = jsonConfig["STOCK_FOR_VALIDATION"];
         StockData tmp(stock, file2arr("InputData/"+stock+".txt"));
         allStockData.push_back(tmp);
-        if(stock == stock_for_validation){
-            stock_for_validation_index = i;
-        }
-        i++;
     }
 
     //Get a pointer to the main stock
@@ -276,19 +271,14 @@ int main(int argc, char* argv[]) {
     std::cout << xVerify.size() << " THATS HOW BIG Xverify is" << std::endl;
 
     int hidden_size = jsonConfig["LSTM_UNITS"];
-    //LSTM lstmLayer1(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
-    //Dropout dropoutLayer1(0);
-    LSTM lstmLayer2(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
-    Dropout dropoutLayer2(0);
+    LSTM lstmLayer1(xTrain[0].size()+hidden_size, hidden_size,xTrain[0].size(),jsonConfig["EPOCHS"],jsonConfig["LEARNING_RATE"]);
     Dense denseLayer(jsonConfig["LEARNING_RATE"],xTrain[0].size());
     
     //Training
 
-    int j,k;
+    int i,j,k;
     std::vector<std::vector<double>> lstmOutput1;
     std::vector<std::vector<double>> lstmOutputError1;
-    std::vector<std::vector<double>> lstmOutput2;
-    std::vector<std::vector<double>> lstmOutputError2;
     std::vector<double> preditions;
     std::vector<double> errors;
     std::vector<double> loss_history;
@@ -298,7 +288,7 @@ int main(int argc, char* argv[]) {
     int epochsWithoutImprovement = 0;
     double averageEpocTime = 0;
     double bestLoss = 1000000;
-    LSTM bestLSTM = lstmLayer2;
+    LSTM bestLSTM = lstmLayer1;
     Dense bestDense = denseLayer;
     
     k =0;
@@ -306,9 +296,8 @@ int main(int argc, char* argv[]) {
         // Start timing
         auto start = std::chrono::high_resolution_clock::now();
 
-        //lstmOutput1 = lstmLayer1.forward(xTrain);
-        lstmOutput2 = lstmLayer2.forward(xTrain); 
-        preditions = denseLayer.forward(lstmOutput2);
+        lstmOutput1 = lstmLayer1.forward(xTrain); 
+        preditions = denseLayer.forward(lstmOutput1);
         errors.clear();
         for(j=0;j<preditions.size();j++){
             errors.push_back((200.0/preditions.size()) * (yTrain[j][0] - preditions[j]));
@@ -321,27 +310,21 @@ int main(int argc, char* argv[]) {
             k = 0;
             std::cout << "bestloss: " << loss_history[i] << std::endl;
             bestLoss = loss_history[i];
-            bestLSTM = lstmLayer2;
+            bestLSTM = lstmLayer1;
             bestDense = denseLayer;
         }else if(k+1 > jsonConfig["PATIENCE"]){
             std::cout << "Loss has not improved in " << jsonConfig["PATIENCE"] <<" epochs, reverting to best epoch" << std::endl;
-            lstmLayer2 = bestLSTM;
+            lstmLayer1 = bestLSTM;
             denseLayer = bestDense;
             break;
         }else{
             k++;
         }
-        lstmOutputError2 = denseLayer.backward(errors,lstmOutput2);
-        lstmOutputError1 = lstmLayer2.backward(lstmOutputError2,lstmLayer2.getConcatInputs());
-        //lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
-
-        //printMatrixDimensions(lstmOutputError1);
-        //printMatrixDimensions(dropoutLayer1.ignore_mask);
-        //printMatrixDimensions(lstmLayer1.getConcatInputs());
+        lstmOutputError1 = denseLayer.backward(errors,lstmOutput1);
+        lstmLayer1.backward(lstmOutputError1,lstmLayer1.getConcatInputs());
         
         std::cout <<"Print origins" << std::endl;
-        //lstmLayer1.printOrigins(i);
-        lstmLayer2.printOrigins(i);
+        lstmLayer1.printOrigins(i);
 
         // Stop timing
         auto end = std::chrono::high_resolution_clock::now();
@@ -355,31 +338,16 @@ int main(int argc, char* argv[]) {
     }
     loss_history = scaleVector(loss_history,1.0/loss_history.size()); // Covert to MAE
     
-    //old train
-    //lstmLayer1.train(xTrain, yTrain);
-    
     //Prediction
     
-    //lstmOutput1 = lstmLayer1.forward(xTrain);
-    lstmOutput2 = lstmLayer2.forward(xTrain);
-    //lstmOutput1 = lstmLayer1.forward(xTrain);
-    lstmOutput2 = lstmLayer2.forward(xTrain);
-    std::vector<double> trainedPredictionsNorm = denseLayer.forward(lstmOutput2);
+    lstmOutput1 = lstmLayer1.forward(xTrain);
+    std::vector<double> trainedPredictionsNorm = denseLayer.forward(lstmOutput1);
     
-    //lstmOutput1 = lstmLayer1.forward(xVerify);
-    lstmOutput2 = lstmLayer2.forward(xVerify);
-    //lstmOutput1 = lstmLayer1.forward(xVerify);
-    lstmOutput2 = lstmLayer2.forward(xVerify);
-    std::vector<double> verifiyPredictionsNorm = denseLayer.forward(lstmOutput2);
+    lstmOutput1 = lstmLayer1.forward(xVerify);
+    std::vector<double> verifiyPredictionsNorm = denseLayer.forward(lstmOutput1);
     
     std::vector<double> trainedPredictions = denormalize_data(trainedPredictionsNorm, mainStockPtr->getDoubleArray());
     std::vector<double> verifiyPredictions = denormalize_data(verifiyPredictionsNorm, mainStockPtr->getDoubleArray());
-
-    //old predict
-    //std::vector<std::vector<double>> trainedPredictionsNorm = lstmLayer1.forward(xTrain);
-    //std::vector<std::vector<double>> verifiyPredictionsNorm = lstmLayer1.forward(xVerify);
-    //std::vector<double> trainedPredictions = denormalize_data(flatten_2d_vector(trainedPredictionsNorm), mainStockPtr->getDoubleArray());
-    //std::vector<double> verifiyPredictions = denormalize_data(flatten_2d_vector(verifiyPredictionsNorm), mainStockPtr->getDoubleArray());
 
     write_vector_to_file(trainedPredictions, "Trainedpredicitons.txt");
     write_vector_to_file(verifiyPredictions, "VerificationPredictions.txt");

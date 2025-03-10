@@ -48,10 +48,6 @@ public:
         return outputs;
     }
 
-    //Droput is not used in backwards propagation
-    void backward(const std::vector<std::vector<double>>& inputs){
-       
-    }
 };
 
 class Dense{
