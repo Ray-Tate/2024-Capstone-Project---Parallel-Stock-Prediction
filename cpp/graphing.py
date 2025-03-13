@@ -77,7 +77,7 @@ plt.grid(True)
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # Save the stock prediction graph
-plt.savefig(f"{output_folder}/{config['STOCK_FOR_VALIDATION']}Output_{timestamp}.png", dpi=300)
+plt.savefig(f"{output_folder}/{config['STOCK_FOR_VALIDATION']}_{config['EPOCHS']} epochs_{config['LEARNING_RATE']}_{config['LSTM_UNITS']}_lstmUNITS_Output_{timestamp}.png", dpi=300)
 
 # Plot loss history
 plt.figure(figsize=(14, 8))
@@ -99,6 +99,6 @@ if os.path.exists(losstxt):
     plt.grid(True)
 
     # Save the loss graph
-    plt.savefig(f"{output_folder}/{config['STOCK_FOR_VALIDATION']}Loss_{timestamp}.png", dpi=300)
+    plt.savefig(f"{output_folder}/{config['STOCK_FOR_VALIDATION']}_{config['EPOCHS']} epochs_{config['LEARNING_RATE']}_{config['LSTM_UNITS']}_lstmUNITS_Loss_{timestamp}.png", dpi=300)
 
 print("Graphs saved successfully.")
