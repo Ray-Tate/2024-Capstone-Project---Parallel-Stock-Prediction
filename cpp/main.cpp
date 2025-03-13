@@ -7,6 +7,9 @@
 #include "json.hpp"
 #include "LSTM_cell.h"
 #include "layers.hpp"
+#include <time.h>
+
+double time1, timedif;
 
 nlohmann::json getConfig(std::string configPath = "config.json"){
     std::ifstream configFile(configPath);
@@ -186,6 +189,8 @@ int StockData::arrayLength = 0;
 
 
 int main(int argc, char* argv[]) {
+    time1 = (double) clock();            /* get initial time */
+    time1 = time1 / CLOCKS_PER_SEC;      /*    in seconds    */
 
     nlohmann::json jsonConfig;
     
@@ -373,5 +378,8 @@ int main(int argc, char* argv[]) {
     
     std::cout << "DONE!!!!!!!!\n" << std::endl;
 
+    timedif = ( ((double) clock()) / CLOCKS_PER_SEC) - time1;
+    printf("The elapsed time is %lf seconds\n", timedif);
+    
     return 0;
 }
