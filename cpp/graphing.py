@@ -11,15 +11,7 @@ import sys
 if len(sys.argv) < 2:
     arg = 'config.json'
 else:
-    # Access the first argument
     arg = sys.argv[1]
-    print(f"Argument received: {arg}")
-
-# Get the directory of the currently running script
-script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Change the working directory to the script's directory
-os.chdir(script_dir)
 
 # Load the configuration from config.json
 with open(arg, 'r') as f:
@@ -33,9 +25,7 @@ stocks = config['STOCKS']
 output_folder = "Output_Graphs"
 os.makedirs(output_folder, exist_ok=True)
 
-# Plot each stock's data
-plt.figure(figsize=(14, 8))
-
+# Load the stock data
 predictDaysAhead = config['PREDICT_DAYS_AHEAD']
 maintxt = f"InputData/{config['STOCK_FOR_VALIDATION']}.txt"
 trainedtxt = "Trainedpredicitons.txt"
@@ -58,47 +48,46 @@ removeFirstElements = 10
 train_data = train_data[removeFirstElements:]
 verif_data = verif_data[removeFirstElements:]
 
+# Generate business day date range
+date_range = pd.bdate_range(start=start_date, end=end_date)
+if len(stock_data) != len(date_range):
+    date_range = date_range[:len(stock_data)]
+
 # Plot the stock data
-count_array = np.arange(1, len(stock_data) + 1)
-plt.plot(count_array, stock_data, label=maintxt)
-count_array = np.arange(1 + removeFirstElements, len(train_data) + 1 + removeFirstElements)
-plt.plot(count_array, train_data, label="Training Set")
-count_array = np.arange(len(stock_data) - len(verif_data) + removeFirstElements, len(stock_data) + removeFirstElements)
-plt.plot(count_array, verif_data, label="Validation Set")
+plt.figure(figsize=(14, 8))
+plt.plot(date_range, stock_data, label="Actual Stock Data")
+
+# Align the training and verification data with the correct dates
+train_dates = date_range[removeFirstElements: removeFirstElements + len(train_data)]
+verify_dates = date_range[-len(verif_data):]
+
+plt.plot(train_dates, train_data, label="Training Set")
+plt.plot(verify_dates, verif_data, label="Validation Set")
 
 # Add labels and legend
-plt.title(f"{config['STOCK_FOR_VALIDATION']} Rolling Stock Prediction Over Time ({config['PREDICT_DAYS_AHEAD']} days ahead)")
+plt.title(f"{config['STOCK_FOR_VALIDATION']} Rolling Stock Prediction Over Time ({predictDaysAhead} days ahead)")
 plt.xlabel('Date')
 plt.ylabel('Price')
 plt.legend()
 plt.grid(True)
 
-# Generate timestamp
-timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
 # Save the stock prediction graph
-plt.savefig(f"{output_folder}/{config['STOCK_FOR_VALIDATION']}_{config['EPOCHS']} epochs_{config['LEARNING_RATE']}_{config['LSTM_UNITS']}_lstmUNITS_Output_{timestamp}.png", dpi=300)
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+plt.savefig(f"{output_folder}/{config['STOCK_FOR_VALIDATION']}_{config['EPOCHS']} epochs_{config['LEARNING_RATE']}_{config['LSTM_UNITS']}_lstmUNITS_{config['BATCH_SIZE']}_batchSize_Output_{timestamp}.png", dpi=300)
 
 # Plot loss history
-plt.figure(figsize=(14, 8))
-
 losstxt = "LossHistory.txt"
-
 if os.path.exists(losstxt):
     with open(losstxt, 'r') as f:
         loss_data = [float(line.strip()) for line in f.readlines()]
 
-    # Plot the loss data
+    plt.figure(figsize=(14, 8))
     plt.plot(np.arange(1, len(loss_data) + 1), loss_data, label="Loss History")
-
-    # Add labels and legend
     plt.title(f"{config['STOCK_FOR_VALIDATION']} Model Loss Over Epochs")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
     plt.grid(True)
-
-    # Save the loss graph
-    plt.savefig(f"{output_folder}/{config['STOCK_FOR_VALIDATION']}_{config['EPOCHS']} epochs_{config['LEARNING_RATE']}_{config['LSTM_UNITS']}_lstmUNITS_Loss_{timestamp}.png", dpi=300)
+    plt.savefig(f"{output_folder}/{config['STOCK_FOR_VALIDATION']}_{config['EPOCHS']} epochs_{config['LEARNING_RATE']}_{config['LSTM_UNITS']}_lstmUNITS_{config['BATCH_SIZE']}_batchSize_Loss_{timestamp}.png", dpi=300)
 
 print("Graphs saved successfully.")
