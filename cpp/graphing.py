@@ -92,9 +92,9 @@ if os.path.exists(losstxt):
     plt.plot(np.arange(1, len(loss_data) + 1), loss_data, label="Loss History")
 
     # Add labels and legend
-    plt.title(f"{config['STOCK_FOR_VALIDATION']} Model Loss Over Epochs")
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss")
+    plt.title(f"{config['STOCK_FOR_VALIDATION']} Model Loss (Average Prediction Percent Error) vs Epoch")
+    plt.xlabel("Epoch (Pass Over Training Data)")
+    plt.ylabel("Loss (Average Prediction Percent Error)")
     plt.legend()
     plt.grid(True)
 

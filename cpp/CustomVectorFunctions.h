@@ -356,6 +356,13 @@ double absSumVector(const std::vector<double>& vec) {
     return sum;
 }
 
+double averageVector(const std::vector<double>& values) {
+    if (values.empty()) {
+        return 0.0; // Return 0 if vector is empty to avoid division by zero
+    }
+    return std::accumulate(values.begin(), values.end(), 0.0) / values.size();
+}
+
 double sumVector(const std::vector<double>& vec) {
     double sum = 0.0;
 

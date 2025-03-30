@@ -286,6 +286,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::vector<double>> lstmOutputError1;
     std::vector<double> preditions;
     std::vector<double> errors;
+    std::vector<double> errorsPercent;
     std::vector<double> loss_history;
 
 
@@ -295,6 +296,9 @@ int main(int argc, char* argv[]) {
     double bestLoss = 1000000;
     LSTM bestLSTM = lstmLayer1;
     Dense bestDense = denseLayer;
+
+    std::vector<double> denormalizedPredictions;
+    std::vector<double> denormalizedYtrain = getFirst(target_Y.getDoubleArray(),jsonConfig["TRAIN_SPLIT"]);;
     
     k =0;
     for(i=0;i<jsonConfig["EPOCHS"];i++){
@@ -304,10 +308,13 @@ int main(int argc, char* argv[]) {
         lstmOutput1 = lstmLayer1.forward(xTrain); 
         preditions = denseLayer.forward(lstmOutput1);
         errors.clear();
+        errorsPercent.clear();
         for(j=0;j<preditions.size();j++){
             errors.push_back((yTrain[j][0] - preditions[j]));
+            std::vector<double> denormalizedPredictions = denormalize_data(preditions, mainStockPtr->getDoubleArray());
+            errorsPercent.push_back((abs(denormalizedYtrain[j] - denormalizedPredictions[j])/denormalizedYtrain[j])*100.0);
         }
-        double totalError = absSumVector(errors);
+        double totalError = averageVector(errorsPercent);
         if(totalError > 300 && restartCount < 10){
             goto StartAI;
         }
@@ -344,7 +351,7 @@ int main(int argc, char* argv[]) {
         averageEpocTime = (averageEpocTime * i + duration.count()) / (i + 1);
         std::cout << "Average epoch time taken: " << averageEpocTime << " seconds" << std::endl;
     }
-    loss_history = scaleVector(loss_history,1.0/loss_history.size()); // Covert to MAE
+    //loss_history = scaleVector(loss_history,1.0/loss_history.size()); // Covert to MAE
     
     //Prediction
     
